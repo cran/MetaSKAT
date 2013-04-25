@@ -261,6 +261,15 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 	File.SetID<-normalizePath(File.SetID ,mustWork =FALSE)
 	SKAT:::Check_File_Exists(File.SetID)
 
+	##########################################
+	# Check obj
+	
+	
+	if(class(obj) == "SKAT_NULL_Model_ADJ"){
+		obj = obj$re1
+		warning("MetaSKAT doesn't support the small sample adjustment!")
+	} 
+
 
 	##########################################
 	# 	Read files 

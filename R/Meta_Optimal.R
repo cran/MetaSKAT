@@ -58,24 +58,56 @@ SKAT_META_Optimal_Get_Pvalue<-function(Q.all, Phi, r.all, method){
 	Each_Info<-SKAT:::SKAT_Optiaml_Each_Q(param.m, Q.all, r.all, lambda.all, method=method)
 	pmin.q<-Each_Info$pmin.q
 	pval<-rep(0,n.q)
+	
+	# added
+	pmin<-Each_Info$pmin
 
 	if(method == "davies" || method=="optimal" || method=="optimal.mod"){
 
 		for(i in 1:n.q){
-			pval[i]<-SKAT:::SKAT_Optimal_PValue_Davies(pmin.q[i,],param.m,r.all)
+			pval[i]<-SKAT:::SKAT_Optimal_PValue_Davies(pmin.q[i,],param.m,r.all, pmin[i])
 		}
 
 
 	} else if(method =="liu" || method =="liu.mod" ){
 		
 		for(i in 1:n.q){
-			pval[i]<-SKAT:::SKAT_Optimal_PValue_Liu(pmin.q[i,],param.m,r.all)
+			pval[i]<-SKAT:::SKAT_Optimal_PValue_Liu(pmin.q[i,],param.m,r.all, pmin[i])
 		}
 
 	} else {
 		
 		stop("Invalid Method:", method)
 	}
+
+	
+	# Check the pval 
+	# Since SKAT-O is between burden and SKAT, SKAT-O p-value should be <= min(p-values) * 2
+	# To correct conservatively, we use min(p-values) * 3
+	
+	multi<-3
+	if(length(r.all) < 3){
+		multi<-2
+	}
+
+	for(i in 1:n.q){
+		pval.each<-Each_Info$pval[i,]
+		IDX<-which(pval.each > 0)
+		
+		pval1<-min(pval.each) * multi
+		if(pval[i] <= 0 || length(IDX) < length(r.all)){
+			pval[i]<-pval1
+		}
+		
+		# if pval==0, use nonzero min each.pval as p-value
+		if(pval[i] == 0){
+			if(length(IDX) > 0){
+				pval[i] = min(pval.each[IDX])
+			}
+		}
+	
+	}
+
 	return(list(p.value=pval,p.val.each=Each_Info$pval))
 
 }

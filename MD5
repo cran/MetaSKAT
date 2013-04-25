@@ -1,10 +1,10 @@
-6c462d7bd1abf5f44cc127642345f8ea *DESCRIPTION
+ad6869066ee4a2f0c437add4c94b50b6 *DESCRIPTION
 a33c9ca98239a7b5ff151af4c3337e9e *NAMESPACE
 076ae7c55ebea63c12f431d305a5f4d6 *R/Meta_Null_Model.R
-7d87d174ef46eb9b9176b2bcf8539313 *R/Meta_Optimal.R
+7409748f34514cef2d0aa78ed425f291 *R/Meta_Optimal.R
 d331e5200d1eeb07e4978ba0f074ae6b *R/Meta_SKAT.R
 6d1502eb12c7cbae36454e0d818bad21 *R/Meta_SSD_Read.R
-aaeea5035ec502a995b949f734dbb399 *R/Meta_SSD_Write.R
+27a855a93b8b3f3bb9d9504b1fd7d4cd *R/Meta_SSD_Write.R
 660c155e7124c01d7ecbcf04061aea2c *R/Meta_SaveData.R
 9cc52aec27ef15fea56f97c1e3e0188a *R/SSD.R
 c8fe77132cdcd8844f536251a3d07f97 *data/Example.rda
@@ -23,7 +23,7 @@ be06e7f7ee07703e97731dfc934d44c2 *inst/doc/03.SetID
 a0e60c4b267e7ae2f0c8ff7b4cef74dd *inst/doc/03.fam
 decdebd45945171f2ecccbddb60b16de *inst/doc/Example.zip
 0bf62ec8f28f985041ed83bb79a326f3 *inst/doc/MetaSKAT.Rnw
-45a7112823a5566369772cf271b93c83 *inst/doc/MetaSKAT.pdf
+aa82399361534701c661e8707215a6a0 *inst/doc/MetaSKAT.pdf
 d5f15ebb9a65e96c1f490dac2698fd08 *man/Example.rd
 fb8850f31781f9e88bbbf510abb93005 *man/Generate_Meta_Files.rd
 19b302d4a4d47b595cb0c2f6117c78f4 *man/MetaSKAT_MSSD_OneSet.rd

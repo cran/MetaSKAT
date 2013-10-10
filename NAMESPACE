@@ -2,7 +2,9 @@ useDynLib(MetaSKAT, .registration = TRUE)
 
 
 # functions
-export(Meta_Null_Model, MetaSKAT_wZ, MetaSKAT_MSSD_OneSet, Open_MSSD_File_2Read, Generate_Meta_Files, MetaSKAT_MSSD_ALL)
+export(Meta_Null_Model, MetaSKAT_wZ, MetaSKAT_MSSD_OneSet, Open_MSSD_File_2Read, Generate_Meta_Files
+, MetaSKAT_MSSD_ALL)
+#, Meta_Null_Model_EmmaX)
 
 # variables
 #export(META_SSD_FILE_OPEN_Read.isInit,

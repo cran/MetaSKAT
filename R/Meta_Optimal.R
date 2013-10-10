@@ -55,7 +55,7 @@ SKAT_META_Optimal_Get_Pvalue<-function(Q.all, Phi, r.all, method){
 
 	# Get Mixture param 
 	param.m<-SKAT_META_Optimal_Param(Phi,r.all)
-	Each_Info<-SKAT:::SKAT_Optiaml_Each_Q(param.m, Q.all, r.all, lambda.all, method=method)
+	Each_Info<-SKAT:::SKAT_Optimal_Each_Q(param.m, Q.all, r.all, lambda.all, method=method)
 	pmin.q<-Each_Info$pmin.q
 	pval<-rep(0,n.q)
 	

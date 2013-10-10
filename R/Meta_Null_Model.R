@@ -1,7 +1,7 @@
 #
 #	y.all : 
 #	for only intercept, set "intercept"
-Meta_Null_Model<-function(y.list, x.list, n.cohort, out_type="C", n.Resampling=0){
+Meta_Null_Model<-function(y.list, x.list, n.cohort, out_type="C", n.Resampling=0 ){
 
 	re<-list()
 	re$n.g=n.cohort

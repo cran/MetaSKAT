@@ -180,10 +180,10 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 		stop("ERROR: Z is not a matrix!")
 	}
 
-	if(class(obj)!= "META_NULL_Model"){
-		stop("ERROR: obj class is not META_NULL_Model!")
+	if(class(obj)!= "META_NULL_Model" && class(obj)!= "META_NULL_Model_EmmaX"){
+		stop("ERROR: obj class is not either META_NULL_Model or META_NULL_Model_EmmaX!")
 	}
-
+	
 	IDX_MISS<-union(which(is.na(Z)),which(Z == 9))
 	if(length(IDX_MISS) > 0){
 		Z[IDX_MISS]<-NA
@@ -207,6 +207,7 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 		res<-obj$out[[i]]$res
 		res.out<-obj$out[[i]]$res.out
 		X1<-obj$out[[i]]$X1
+		
 
 		if(obj$out_type=="C"){
 			s2<-obj$out[[i]]$s2
@@ -214,6 +215,8 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 		} else if (obj$out_type=="D"){
 			pi_1<-obj$out[[i]]$pi_1
 			re1[[i]]<-Meta_SKAT_SaveData_Logistic(res,Z1 , X1, pi_1, res.out)
+		} else if (obj$out_type=="K"){
+			re1[[i]]<-Meta_SKAT_SaveData_Kinship(res,Z1 , X1, obj$out[[i]]$P, res.out)
 		} else {
 			stop("ERROR: out_type is wrong!")
 		}

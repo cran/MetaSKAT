@@ -302,14 +302,17 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 
 	cat("Merge datasets and get set info\n")
 
-	SetInfo$SetID.Num<-as.numeric(as.factor(SetInfo$SetID))
+	SetInfo$SetID.Num1<-as.numeric(as.factor(SetInfo$SetID))
 	SetInfo$IDX<-1:length(SetInfo$SetID)
 	
 	Data.all<-merge(SetInfo, BimInfo, by.x="SnpID", by.y="SnpID", all.x=FALSE, all.y=FALSE)
 	ID.nofind = which(is.na(Data.all$idx))
 	
-	ord<-order(Data.all$SetID.Num, Data.all$IDX)
+	ord<-order(Data.all$SetID.Num1, Data.all$IDX)
 	Data.all1<-Data.all[ord,]
+	
+	# Modified 
+	Data.all1$SetID.Num<-as.numeric(as.factor(Data.all1$SetID))
 
 	###################################################
 	# 	Generate Intervals

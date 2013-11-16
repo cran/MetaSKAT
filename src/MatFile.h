@@ -36,6 +36,7 @@ public:
 	int	GetStart_Pos(int * pos, int * size);
 	int	CheckSavedData();
     int 	CheckCRC(int start, int size);
+    int SeekG(int start);
 	
 private:
 	
@@ -51,6 +52,8 @@ private:
 	char 	m_magic_number[2];	
 	char  	m_buffer_crc[MAX_SIZE_MAT*4];
     float  	m_buffer_float[MAX_SIZE_MAT];
+    
+    int m_debugPos;
 
 };
 

@@ -25,6 +25,10 @@
 #define ERORR_MAT_IDX_OUTOFBOUND			12		//check the size of matrix
 #define ERORR_MAT_FILEOPEN	13	// file hasn't been opened.
 #define ERORR_MEMORY	14	// file hasn't been opened.
+#define ERORR_BED_SEEK	15	// seekg in bed file read error
+#define ERROR_BED_READ	16	// read in bed file read error
+#define ERORR_BED_FILESIZE 17
+#define ERORR_MAT_SEEK 18
 #endif //_ERROR_MESSAGES_H
 
 

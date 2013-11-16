@@ -21,6 +21,7 @@ BedFile::~BedFile(){
 	}
 }
 
+
 int 	BedFile::Init(char* filename, int NSample, int NSnp){
 
 	int re;
@@ -80,6 +81,11 @@ int 	BedFile::Check(){
 		re = ERORR_BIM_NOT_SNP_MOD;
 	}
 
+	// read
+	m_bed.seekg (0, std::ios::end);
+    m_FileSize = m_bed.tellg();
+    m_bed.seekg (0, std::ios::beg);
+	//Rprintf("Length[%d]\n", length);
 	return re;
 
 }
@@ -97,24 +103,104 @@ int	BedFile::GetStartByte(int SNP_Idx){
  **********************/
 int	BedFile::ReadData(int * pIdxs, int num, unsigned char * Genotype){
 
-	int i,Idx, start;
+	int i,Idx, start, re;
 	for(i=0;i< num;i++){
 		Idx = pIdxs[i];
 		start = i * m_nSample;
-		ReadDataOne(Idx, (Genotype + start));
+		re = ReadDataOne(Idx, (Genotype + start));
+		
+		if(re > 0){
+			return re;
+		}
 	}
 
 	return 0;
 
 }
 
+
+//#define ERORR_BED_SEEK	15	// seekg in bed file read error
+//#define ERROR_BED_READ	16	// read in bed file read error
+
+
+int BedFile::SeekG(int start){
+
+	int idx;
+	if(m_FileSize < start){
+		return ERORR_BED_FILESIZE;
+	}
+	
+	m_bed.seekg(start ,std::ios::beg); // +3 because of first 3 bytes in the file
+	
+	while(!m_bed.good()){
+		// try one more 
+		m_bed.clear();
+		m_bed.seekg(start ,std::ios::beg);
+		
+		idx++;
+		if(idx >= 5){
+			break;
+		}
+	}
+	
+	if(!m_bed.good()){
+		return ERORR_BED_SEEK;
+	} else{
+		m_debugPos = m_bed.tellg();
+		if(start != m_debugPos){
+			return ERORR_BED_SEEK;
+		}
+	}
+
+	return 0;
+}
+
+
+int BedFile::ReadFile(int start){
+
+	int re;
+	m_bed.read((char *)m_pbuffer,m_BlockSize);
+	m_debuglength = m_bed.gcount();
+	//Rprintf("-[%d]",m_debuglength);
+	if( m_debuglength  != m_BlockSize){
+		m_bed.clear();
+		re = BedFile::SeekG(start);
+		if(re > 0){
+			return re;
+		}
+	} else{
+		return 0;
+	}
+	
+	m_bed.read((char *)m_pbuffer,m_BlockSize);
+	m_debuglength = m_bed.gcount();
+	//Rprintf("-[%d]",m_debuglength);
+	if( m_debuglength  != m_BlockSize){
+		return ERROR_BED_READ;
+		return 0;
+	}
+	//Rprintf("\n");
+	return 0;
+}
+
+
 int	BedFile::ReadDataOne(int Idx, unsigned char * Genotype){
 
 	int i,j,k, temp;
 	int start = GetStartByte(Idx);
-	m_bed.seekg(start ,std::ios::beg); // +3 because of first 3 bytes in the file
-	m_bed.read((char *)m_pbuffer,m_BlockSize);
-
+	int re;
+	re = SeekG( start);
+	if(re > 0){
+		return re;
+	}
+	
+	re = ReadFile( start);
+	if(re > 0){
+		//Rprintf("IDX[%d], start[%d][%d], Read[%d][%d], First k[%d], Sample-k [%d]\n",Idx, start,m_debugPos, m_BlockSize,m_debuglength, k, m_nSample-k);
+		//return 0;
+		return re;
+	}
+		
 	k=0;
 	for(i=0;i<m_BlockSize-1;i++){
 		Decoding(m_pbuffer[i]);
@@ -124,8 +210,7 @@ int	BedFile::ReadDataOne(int Idx, unsigned char * Genotype){
 			k++;
 		}
 	}
-    //Rprintf("First k[%d], Sample-k [%d]\n",k, m_nSample-k);
-
+    
 	/* last block */
 	Decoding(m_pbuffer[i]);
     temp = m_nSample-k;

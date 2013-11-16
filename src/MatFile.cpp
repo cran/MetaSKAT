@@ -157,7 +157,7 @@ int 	MatFile::PutData(double * mat, int size){
 
 int 	MatFile::GetData(double * mat, int start, int nmarker){
 
-	int len, size;
+	int len, size, re;
 	char buff1[10];
 	uint32_t crc1, crc2;
 
@@ -173,7 +173,10 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
 	}
 
 	
-	m_file_read.seekg(start ,std::ios::beg);
+	re = SeekG(start);
+	if(re > 0){
+		return re;
+	}
 	m_file_read.read(buff1,sizeof(unsigned int)); // first 4 byte
 
 	memcpy(&crc1, buff1, sizeof(unsigned int));
@@ -216,9 +219,40 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
 }
 
 
+int MatFile::SeekG(int start){
+
+	int idx;
+	
+	m_file_read.seekg(start ,std::ios::beg); 
+	
+	while(!m_file_read.good()){
+		// try one more 
+		m_file_read.clear();
+		m_file_read.seekg(start ,std::ios::beg);
+		
+		idx++;
+		if(idx >= 5){
+			break;
+		}
+	}
+	
+	if(!m_file_read.good()){
+		return ERORR_MAT_SEEK;
+	} else{
+		m_debugPos = m_file_read.tellg();
+		if(start != m_debugPos){
+			return ERORR_MAT_SEEK;
+		}
+	}
+
+	return 0;
+}
+
+
+
 int 	MatFile::CheckCRC(int start, int size){
     
-	int len;
+	int len, re;
 	char buff1[10];
 	uint32_t crc1, crc2;
     
@@ -232,7 +266,11 @@ int 	MatFile::CheckCRC(int start, int size){
 	}
     
 	
-	m_file_read.seekg(start ,std::ios::beg);
+	re = SeekG(start);
+	if(re > 0){
+		return re;
+	}
+	
 	m_file_read.read(buff1,sizeof(unsigned int)); // first 4 byte
     
 	memcpy(&crc1, buff1, sizeof(unsigned int));

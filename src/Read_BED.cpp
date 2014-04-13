@@ -1,5 +1,4 @@
-#include <R.h>
-
+#include "RFunc.h"
 #include "Read_BED.h"
 #include "error_messages.h"
 
@@ -15,27 +14,28 @@ BedFile::BedFile(){
 }
 BedFile::~BedFile(){
 
+    
 	Close();
-	if(m_pbuffer != NULL){
-		delete [] m_pbuffer;
-	}
+    
+
 }
 
 
 int 	BedFile::Init(char* filename, int NSample, int NSnp){
 
 	int re;
-
+    Close();
+    
 	m_nSample = NSample;
 	m_nSNP = NSnp;
 	m_BlockSize = (m_nSample+3)/4;
-	m_pbuffer = new unsigned char[m_BlockSize];
+	m_pbuffer = (unsigned char *) F_alloc(m_BlockSize, sizeof(unsigned char));
 	if(!m_pbuffer){
 		re = ERORR_BIM_OPEN_FILE4READ;
 		return re;
 	}
     
-    Close();
+
 
     //Rprintf("Sample [%d] SNP [%d] Block [%d]\n", m_nSample, m_nSNP, m_BlockSize);
     
@@ -59,6 +59,12 @@ int 	BedFile::Close(){
 		m_bed.close();
 	}
 
+    if(m_pbuffer != NULL){
+        //delete [] m_pbuffer;
+        F_free(m_pbuffer);
+        m_pbuffer=NULL;
+	}
+    
 	return 0;
 }
 
@@ -125,11 +131,15 @@ int	BedFile::ReadData(int * pIdxs, int num, unsigned char * Genotype){
 
 int BedFile::SeekG(int start){
 
-	int idx;
+	int idx=0;
 	if(m_FileSize < start){
 		return ERORR_BED_FILESIZE;
 	}
 	
+    if(start == m_bed.tellg()){
+        return 0;
+    }
+    
 	m_bed.seekg(start ,std::ios::beg); // +3 because of first 3 bytes in the file
 	
 	while(!m_bed.good()){

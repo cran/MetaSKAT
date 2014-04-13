@@ -71,19 +71,21 @@ Meta_SKAT_SaveData = function(Z, obj.res, SetID, impute.method = "fixed"){
 
 	out.z<-Meta_SKAT_MAIN_Check_Z(Z, n, obj.res$id_include, SetID, impute.method)
 	
-
-	if(obj.res$out_type == "C"){
+	if(class(obj.res)== "SKAT_NULL_Model_EMMAX"){
+		out = Meta_SKAT_SaveData_Kinship(obj.res$res, out.z$Z.test, obj.res$P)
+	} else if(obj.res$out_type == "C"){
 		out = Meta_SKAT_SaveData_Linear(obj.res$res,out.z$Z.test
-			,obj.res$X1, obj.res$s2)
+			,obj.res$X1, obj.res$s2, obj.res$res.out)
 		  
 	} else if (obj.res$out_type == "D"){
 
 		out = Meta_SKAT_SaveData_Logistic(obj.res$res, out.z$Z.test
-			,obj.res$X1, obj.res$pi_1)
+			,obj.res$X1, obj.res$pi_1, obj.res$res.out)
 		
 	}
 
-	re=list(Score=out$Score, SMat.Summary = out$SMat.Summary, MAF=out.z$MAF, missing_rate=out.z$missing_rate )
+	re=list(Score=out$Score, SMat.Summary = out$SMat.Summary, MAF=out.z$MAF, missing_rate=out.z$missing_rate,
+	Score.Resampling=out$Score.Resampling )
 	
 	return(re)
 
@@ -97,7 +99,7 @@ Meta_SKAT_SaveData_Linear = function(res, Z, X1, s2, res.out=NULL){
 
   Q.Temp.Resampling<-NULL
   if(!is.null(res.out)){
- 	Q.Temp.Resampling<-t(Z) %*% res.out
+ 	Q.Temp.Resampling<-t(Z) %*% res.out /s2
   }
   W.1 = t(Z) %*% Z - (t(Z) %*%X1)%*%solve(t(X1)%*%X1)%*% (t(X1) %*% Z ) # t(Z) P0 Z
   MAF = colMeans(Z)/2
@@ -126,16 +128,13 @@ Meta_SKAT_SaveData_Logistic = function(res, Z, X1, pi_1, res.out=NULL){
   return(re)
 }
 
-Meta_SKAT_SaveData_Kinship = function(res, Z, X1, P1, res.out=NULL){
+Meta_SKAT_SaveData_Kinship = function(res, Z, P1){
 
 
   # get Q
   Q.Temp = t(res)%*%Z
 
   Q.Temp.Resampling<-NULL
-  if(!is.null(res.out)){
- 	Q.Temp.Resampling<-t(Z) %*% res.out
-  }
   W.1 = t(Z) %*% (P1 %*% Z) # t(Z) P0 Z
   MAF = colMeans(Z)/2
 

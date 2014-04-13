@@ -16,6 +16,10 @@ assign("META_BED_FILE_OPEN.FileName", "", envir=MetaSSD.env)
 assign("META_MSSD_FILE_OPEN_Write.isOpen", 0, envir=MetaSSD.env)
 assign("META_MSSD_FILE_OPEN_Write.FileName", "", envir=MetaSSD.env)
 
+assign("META_Dosage_FILE_OPEN.isOpen", 0, envir=MetaSSD.env)
+assign("META_Dosage_FILE_OPEN.FileName", "", envir=MetaSSD.env)
+
+
 #META_BED_FILE_OPEN.isOpen = 0
 #META_BED_FILE_OPEN.FileName = ""
 
@@ -23,7 +27,12 @@ assign("META_MSSD_FILE_OPEN_Write.FileName", "", envir=MetaSSD.env)
 #META_MSSD_FILE_OPEN_Write.FileName = ""
 
 
-Open_BED_File<-function(File.Bed, File.Bim, N.Sample){
+Open_BED_File<-function(File.Bed, File.Bim, N.Sample, Is.Dosage){
+
+	if(Is.Dosage){
+		re = Open_Dosage_File(File.Bed,  N.Sample)
+		return(re)
+	}
 
 	err_code<-0
 	File.Bed<-normalizePath(File.Bed ,mustWork =FALSE)
@@ -49,7 +58,7 @@ Open_BED_File<-function(File.Bed, File.Bim, N.Sample){
 	
 	# open bed file
 	if(get("META_BED_FILE_OPEN.isOpen", envir=MetaSSD.env) == 1){
-		Close_BED_File()
+		Close_BED_File(Is.Dosage)
 	}
 	temp<-.C("META_BED_Init", as.character(File.Bed), as.integer(N.Sample), as.integer(nMarker), as.integer(err_code))
 
@@ -64,7 +73,111 @@ Open_BED_File<-function(File.Bed, File.Bim, N.Sample){
 
 }
 
-Close_BED_File<-function(){
+Open_Dosage_File<-function(File.Dosage,  N.Sample){
+
+	err_code<-0
+	File.Dosage<-normalizePath(File.Dosage ,mustWork =FALSE)
+	
+	SKAT:::Check_File_Exists(File.Dosage)
+
+	
+	# read bim file
+	cat("Read Dosage file\n")
+	
+	nMarker = 0
+	# open dosage file
+	temp<-.C("META_Dosage_Init", as.character(File.Dosage), as.integer(N.Sample), as.integer(nMarker), as.integer(err_code))
+
+	error_code<-temp[[4]]
+	Print_Error_CODE(error_code)
+	
+	nMarker<-temp[[3]]
+	
+	# Get SNP INFO
+	SNP_ID_SIZE=51 # it should be the same as SNP_ID_SIZE in error_messages.h 
+	SNPID=raw(nMarker* SNP_ID_SIZE)
+	a1=raw(nMarker)
+	a2=raw(nMarker)
+	
+	temp<-.C("META_Dosage_Info",SNPID, a1, a2 , as.integer(err_code))
+
+	error_code<-temp[[4]]
+	Print_Error_SSD(error_code)
+		
+	SNPID.m<-matrix(temp[[1]], byrow=TRUE, nrow=nMarker)
+	SNPID.c<-apply(SNPID.m, 1, rawToChar)
+
+	a1 = rawToChar(temp[[2]])
+	a2 = rawToChar(temp[[3]])				
+	
+	DosageInfo<-data.frame(SnpID=SNPID.c, a1=a1, a2=a2, idx=1:nMarker)
+	
+	assign("META_Dosage_FILE_OPEN.isOpen", 1, envir=MetaSSD.env);
+	assign("META_Dosage_FILE_OPEN.FileName",File.Dosage, envir=MetaSSD.env)
+
+
+	return(DosageInfo)
+
+}
+
+
+Read_From_Dosage_File<-function(IDX, N.Sample){
+
+
+	if(get("META_Dosage_FILE_OPEN.isOpen", envir=MetaSSD.env) == 0){
+		stop("Dosage file hasn't been opened")
+	}
+
+	
+	err_code<-0
+	N.SNP<-length(IDX)
+	size<-N.SNP * N.Sample
+
+	Z<-rep(11,size)
+
+	temp<-.C("META_Dosage_Read",as.integer(IDX),as.raw(Z),as.integer(N.SNP), as.integer(err_code))
+
+	error_code<-temp[[4]]
+	Print_Error_CODE(error_code)
+	
+	Z.out<-t(matrix(as.numeric(temp[[2]]),byrow=TRUE, nrow=N.SNP))
+	
+	IDX_MISS<-which(Z.out == 9)
+	if(length(IDX_MISS) > 0){
+		Z.out[IDX_MISS]<-NA
+	}
+	MAF<-colMeans(Z.out, na.rm=TRUE)/2
+	
+	return(list(Z=Z.out, MAF=MAF))
+
+}
+
+
+Close_Dosage_File<-function(){
+
+	err_code<-0
+	if(get("META_Dosage_FILE_OPEN.isOpen", envir=MetaSSD.env) == 1){
+		temp<-.C("META_Dosage_Close", as.integer(err_code))
+		Msg<-sprintf("Close the opened Dosage file: %s\n"
+		,get("META_Dosage_FILE_OPEN.FileName", envir=MetaSSD.env));
+		
+		cat(Msg)
+		assign("META_Dosage_FILE_OPEN.isOpen", 0, envir=MetaSSD.env);
+	} else{
+		Msg<-sprintf("No opened SSD file!\n");
+		cat(Msg)		
+	}
+
+}
+
+
+Close_BED_File<-function(Is.Dosage){
+
+	if(Is.Dosage){
+		Close_Dosage_File()
+		return
+	}
+
 
 	err_code<-0
 	if(get("META_BED_FILE_OPEN.isOpen", envir=MetaSSD.env) == 1){
@@ -81,8 +194,13 @@ Close_BED_File<-function(){
 
 }
 
-Read_From_BED_File<-function(IDX, N.Sample){
+Read_From_BED_File<-function(IDX, N.Sample, Is.Dosage){
 
+	if(Is.Dosage){
+		re =Read_From_Dosage_File(IDX, N.Sample) 
+		return(re)
+	}
+	
 	if(get("META_BED_FILE_OPEN.isOpen", envir=MetaSSD.env) == 0){
 		stop("BED file hasn't been opened")
 	}
@@ -234,25 +352,71 @@ Write_To_MetaInfo_Header<-function(File.MetaInfo, n.all, n, nSets, nSNPs, nSNPs.
 	sprintf("#nSets=%d",nSets),
 	sprintf("#nSNPs=%d",nSNPs),
 	sprintf("#nSNPs.unique=%d",nSNPs.unique),
-	sprintf("SetID SetID_numeric SNPID Score MAF MissingRate Allele1 Allele2 MinorAllele PASS StartPOS"))
+	sprintf("SetID SetID_numeric SNPID Score MAF MissingRate MajorAllele MinorAllele PASS StartPOS StartPOSPermu"))
 	
 	write.table(header, File.MetaInfo, col.names=FALSE, row.names=FALSE, quote=FALSE)
 
 }
 
-Write_To_MetaInfo<-function(File.MetaInfo, SetID, SetID_num, SNPID, Score, MAF, missing_rate, a1, a2, Minor.Allele, PASS, StartPos){
+Write_To_MetaInfo<-function(File.MetaInfo, SetID, SetID_num, SNPID, Score, MAF, missing_rate, Major.Allele, Minor.Allele, PASS, StartPos, startpos.permu){
 
 
-	nSNP<-length(a1)
+	nSNP<-length(MAF)
 	data.w<-data.frame(SetID=rep(SetID,nSNP), SetID_num = rep(SetID_num,nSNP), SNPID=SNPID, Score=Score
-	, MAF=MAF, MissingRate=missing_rate, Allele1=a1, Allele2=a2, MinorAllele=Minor.Allele, PASS, StartPos=rep(StartPos,nSNP))
+	, MAF=MAF, MissingRate=missing_rate, Major.Allele=Major.Allele, MinorAllele=Minor.Allele, PASS, StartPos=rep(StartPos,nSNP)
+	, StartPosPermu=rep(startpos.permu,nSNP))
 	write.table(data.w, File.MetaInfo, col.names=FALSE, row.names=FALSE, quote=FALSE, append=TRUE, sep=" ")
 
 }
 
 
+Write_To_MetaPermu_Header<-function(File.Permu, n.all, n, nSets, nSNPs, nSNPs.unique, n.permu){
 
-Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, File.MInfo, N.Sample, data=NULL){
+	#header<-rbind(sprintf("#N.Permu=%d",n.permu),
+	#sprintf("#N.ALL=%d",n.all),
+	#sprintf("#N=%d",n),
+	#sprintf("#nSets=%d",nSets),
+	#sprintf("#nSNPs=%d",nSNPs),
+	#sprintf("#nSNPs.unique=%d",nSNPs.unique))
+	
+	#write.table(header, File.Permu, col.names=FALSE, row.names=FALSE, quote=FALSE)
+
+	# Use binary file 
+	# 10 Integer values (header)
+	# version, N.Permu, N.ALL, N, nSets, nSNPs, nSNP.unique
+	Header=as.integer(c(1, n.permu, n.all, n, nSets, nSNPs, nSNPs.unique, 1, 1, 1))
+	con = file(File.Permu, "wb")
+	writeBin(Header, con, endian="little", size=8) 
+
+	re=list(con=con, startpos=80)
+	return(re)
+}
+
+
+Write_To_MetaPermu<-function(con, Score, Score.Resampling, startpos){
+
+
+	
+	#SetID<<-SetID
+	#SetID_num<<-SetID_num
+	#SNPID<<-SNPID
+	#Score.Resampling1<<-Score.Resampling
+	
+	#nSNP<-length(SNPID)
+	#data.w<-data.frame(SetID=rep(SetID,nSNP), SetID_num = rep(SetID_num,nSNP), SNPID=SNPID, Score.Resampling=Score.Resampling)
+	#write.table(data.w, File.Permu, col.names=FALSE, row.names=FALSE, quote=FALSE, append=TRUE, sep=" ")
+
+	Score.Resampling.v<-as.double(as.vector(t(cbind(Score, Score.Resampling))))
+	writeBin(Score.Resampling.v, con, endian="little", size=8) 
+	startpos = startpos + length(Score.Resampling.v) *8
+
+	return(startpos)
+}
+
+
+
+Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, File.MInfo, N.Sample, File.Permu=NULL, data=NULL
+, Is.Dosage=FALSE){
 
 	MetaSKAT_Is_IsLittleEndian()
 	
@@ -292,7 +456,7 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 	cat("SetID file has", nSets, "sets\n")
 
 	# open bim
-	BimInfo<-Open_BED_File(File.Bed, File.Bim, N.Sample)
+	BimInfo<-Open_BED_File(File.Bed, File.Bim, N.Sample,Is.Dosage=Is.Dosage)
 
 	# open MSSD
 	File.MInfo = Open_Write_MSSD_File(File.MSSD, File.MInfo)
@@ -330,6 +494,27 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 
 
 	Write_To_MetaInfo_Header(File.MInfo, N.Sample, N.Sample, x.n, SNPID.Num, SNPID.Num.unique)
+	
+	# Permu
+	Is.Permu=FALSE
+	startpos.permu=0
+	if(!is.null(obj$res.out) && !is.null(File.Permu)){
+		Is.Permu=TRUE
+		n.permu=ncol(obj$res.out)
+		permu.out = Write_To_MetaPermu_Header(File.Permu, N.Sample, N.Sample, x.n, SNPID.Num, SNPID.Num.unique, n.permu)
+		File.Permu.con = permu.out$con
+		startpos.permu= permu.out$startpos
+						
+	} else if(is.null(obj$res.out) && is.null(File.Permu)){
+
+
+	} else {
+		msg<-sprintf("To save permuted (resampled) scores, n.Resampling > 0 (in SKAT_Null_Model) and File.Permu != NULL")
+		stop(msg)
+	}
+	
+	# RUN
+	
 	byte_used<-Magic_Byte
 	StartPos<-rep(0, length(x))
 	for(i in x){
@@ -345,47 +530,45 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 		a2.org<-Data.all1$a2[IDX]
 		
 		
-		out<-Read_From_BED_File(SNPIndex, N.Sample)
+		out<-Read_From_BED_File(SNPIndex, N.Sample, Is.Dosage=Is.Dosage)
 		Z<-out$Z
 		MAF<-out$MAF
 
 		Allele1<-a1.org
 		Allele2<-a2.org
-		Minor.Allele<-a2.org		
+		Major.Allele<-a1.org
+		Minor.Allele<-a2.org	
+			
 		IDX1<-which(MAF > 0.5)
-		
 		if(length(IDX1) > 0){
 			Minor.Allele[IDX1]<-a1.org[IDX1]
+			Major.Allele[IDX1]<-a2.org[IDX1]
 			MAF[IDX1]<-1-MAF[IDX1]
-		}
-		
-		#
-		#	change allele 1 and 2 by alphabetical order 
-		#	currently allel1 is major
-
-		IDX1<-which(Allele1 > Allele2)
-		if(length(IDX1) > 0){
-			Allele1[IDX1]<-a2.org[IDX1]
-			Allele2[IDX1]<-a1.org[IDX1]
 			Z[,IDX1] = 2-Z[,IDX1]
 		}
-		
-		
+			
 		
 		nSNP<-length(Allele1)
 		PASS1<-rep("PASS",nSNP)
 		
-		re<-Meta_SKAT_SaveData(Z, obj, SetID=SetID, impute.method = "fixed")
-		Write_To_MetaInfo(File.MInfo, SetID, i, SNPID, re$Score, MAF, re$missing_rate, Allele1, Allele2, Minor.Allele, PASS1 ,byte_used )
+		re1<-Meta_SKAT_SaveData(Z, obj, SetID=SetID, impute.method = "fixed")
+		Write_To_MetaInfo(File.MInfo, SetID, i, SNPID, re1$Score, MAF, re1$missing_rate, Major.Allele, Minor.Allele, PASS1 ,byte_used, startpos.permu )
+		if(Is.Permu){
+				
+			startpos.permu = Write_To_MetaPermu(File.Permu.con, re1$Score, re1$Score.Resampling, startpos.permu)
+						
+		}
+		
 		StartPos[i]<-byte_used
 		
-		byte1 = Write_To_MSSD_File(re$SMat.Summary)
+		byte1 = Write_To_MSSD_File(re1$SMat.Summary)
 		byte_used = byte_used + byte1
 		
 	}
-	
+	if(Is.Permu){
+		close(File.Permu.con)
+	}
 	Check_Saved(length(x), StartPos)
 
-	
 }
 

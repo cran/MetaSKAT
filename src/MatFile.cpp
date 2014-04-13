@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <R.h>
-
-
+#include "RFunc.h"
 #include "MatFile.h"
 #include "error_messages.h"
 
@@ -19,7 +17,8 @@ MatFile::MatFile(){
 
 MatFile::~MatFile(){
 
-	Close();
+
+        Close();
 }
 
 int MatFile::Init(){
@@ -125,11 +124,10 @@ int 	MatFile::PutData(double * mat, int size){
     
     /* convert double to float to save space */
 	len=sizeof(float) * size;
-    float * temp = (float *)m_buffer_crc;
     for(i=0;i<size;i++){
-        temp[i] = (float)mat[i];
+        m_buffer_float[i] = (float)(mat[i]);
     }
-
+    memcpy(m_buffer_crc, m_buffer_float, len);
 
 	crc = xcrc32 ( ( unsigned char*)m_buffer_crc, len);
 	memcpy(crc_c, &crc, 4);
@@ -197,17 +195,16 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
 	}
  
     //Rprintf("Start Loop\n");
-
+    memcpy(m_buffer_float, m_buffer_crc, len);
 
     int id1, id2, k, i,j;
     k=0;
-    float *temp = (float *) m_buffer_crc;
    
     for(i=0;i< nmarker; i++){
         for(j=i;j<nmarker;j++){
             id1=i * nmarker +j;
             id2=j * nmarker +i;
-            mat[id1] = mat[id2] = (double)temp[k];
+            mat[id1] = mat[id2] = (double)(m_buffer_float[k]);
             k++;
             
         }
@@ -221,7 +218,7 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
 
 int MatFile::SeekG(int start){
 
-	int idx;
+	int idx=0;
 	
 	m_file_read.seekg(start ,std::ios::beg); 
 	
@@ -305,26 +302,31 @@ int 	MatFile::CheckSavedData(){
 
 
 	// Run
-	int i, *ppos, *psize, re, nmarker;
+	int i, *ppos, *psize, re;
 	int NumSet = GetNum_Sets();
-	ppos = new int[NumSet];
-	psize = new int[NumSet];
+	ppos = (int *)F_alloc(NumSet, sizeof(int));
+    psize = (int *)F_alloc(NumSet, sizeof(int));
+    
+    //ppos = new int[NumSet];
+	//psize = new int[NumSet];
 	GetStart_Pos(ppos, psize);
 
 	for(i=0;i<NumSet;i++){
         
         re = CheckCRC(ppos[i], psize[i]);
 		if(re != NO_ERRORS){
-			delete [] ppos ;
-			delete [] psize ;
+			F_free(ppos) ;
+			F_free(psize) ;
 			Close();
 			return re;
 		}
 	}
 
-    delete [] ppos ;
-    delete [] psize ;
+    F_free(ppos) ;
+    F_free(psize) ;
 	Close();
+
+    
 	return NO_ERRORS;
 }
 

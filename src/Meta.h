@@ -34,6 +34,14 @@ int	Bed_Init(char* filename, int NSample, int NSnp);
 int	Bed_ReadData(int * pIdxs, int num, unsigned char * Genotype);
 int Bed_Close();
 
+
+int	Dosage_Init(char* filename, int NSample, int * pNSnp);
+int	Dosage_ReadData(int * pIdxs, int num, float * Dosage);
+int	Dosage_Close();
+int Dosage_Info(char * pSNPID, char * pa1, char *pa2);
+
+
+
 /***************************
  etc
  **************************/

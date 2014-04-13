@@ -8,7 +8,7 @@
  \usage{
 
 	Generate_Meta_Files(obj, File.Bed, File.Bim, File.SetID, File.MSSD
-	, File.MInfo, N.Sample, data=NULL)
+	, File.MInfo, N.Sample, File.Permu = NULL, data=NULL, Is.Dosage = FALSE)
 
  }
  \arguments{
@@ -19,8 +19,9 @@
     \item{File.MSSD}{name of MSSD file that will be generated.}
     \item{File.MInfo}{name of MInfo file that will be generated.}
     \item{N.Sample}{number of samples.}
-    \item{data}{an optional data frame containing the variables in the model (default=NULL).
-If it is NULL, the variables are taken from environment(formula)}
+    \item{File.Permu}{name of a file that will have score statistics from permuted phenotypes.}
+    \item{data}{an optional data frame containing the variables in the model (default=NULL). If it is NULL, the variables are taken from environment(formula)}
+    \item{Is.Dosage}{internal use only}
 }
 \details{
 	It generates summary statistic files (MSSD and MInfo files) from plink formated data files. 

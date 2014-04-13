@@ -1,8 +1,19 @@
 
-Beta.Weights<-function(MAF,weights.beta, Cutoff=1){
+Beta.Weights<-function(MAF,weights.beta, Cutoff=1, Is.MAF=TRUE){
 
 	n<-length(MAF)
-	weights<-rep(0,n)	
+	weights<-rep(0,n)
+	Sign<-rep(1,n)
+	#print(MAF)
+	
+	IDX1<-which(MAF > 0.5)
+	if(length(IDX1) > 0){
+		Sign[IDX1]<--1
+		MAF[IDX1]<-1-MAF[IDX1]
+	}
+	 
+
+	
 	IDX_0<-union(which(MAF == 0), which(MAF > Cutoff))
 	if(length(IDX_0) == n){
 		#stop("No polymorphic SNPs")
@@ -12,7 +23,17 @@ Beta.Weights<-function(MAF,weights.beta, Cutoff=1){
 	} else {
 		weights[-IDX_0]<-dbeta(MAF[-IDX_0],weights.beta[1],weights.beta[2])
 	}
+
+	weights = weights * Sign	
+	#if(!Is.MAF){
+	#	weights1<<-weights
+	#	MAF1<<-MAF
+	#} else {
+	#	weights2<<-weights
+	#	MAF2<<-MAF
+	#}
 	
+
 	#print(length(IDX_0))
 	#print(weights[-IDX_0])
 	return(weights)
@@ -22,7 +43,7 @@ Beta.Weights<-function(MAF,weights.beta, Cutoff=1){
 
 
 Meta_SKAT.Work<-function(re, n.g, combined.weight=TRUE, n1=NULL, weights.beta=c(1,25),
-method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1){
+method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.MAF=TRUE){
 
 
 	# optimal =optimal.mod
@@ -42,13 +63,20 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1){
 	for(i in 1:n.g){
 	
 		MAF.list[[i]]<-re[[i]]$MAF
-
+		
 	}
-
+	#MAF.list1<<-MAF.list
 	for(i in 1:n.g){
 	
 		MAF.Combine = MAF.Combine + MAF.list[[i]] * n1[i] / sum(n1)
 	}
+	
+	# If MAF.Combined==0 for all SNP, return p-value 1
+	if(sum(MAF.Combine) == 0){
+		warning("No polymorphic SNPs!",call.=FALSE)
+		return(list(p.value=1, p.value.resampling= NULL, pval.zero.msg=NULL))
+	}
+	
 
 	# Get MAF.Groups when Group_Idx != NULL
 	ID.Groups = unique(Group_Idx)	
@@ -64,10 +92,10 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1){
 
 	for(i in 1:n.g){
 		if(combined.weight == TRUE){
-			weight1<-Beta.Weights(MAF.Combine,weights.beta, MAF.cutoff)
+			weight1<-Beta.Weights(MAF.Combine,weights.beta, MAF.cutoff, Is.MAF=Is.MAF)
 		} else {
 			j<-Map.Groups[i]
-			weight1<-Beta.Weights(MAF.Groups[[j]],weights.beta, MAF.cutoff)
+			weight1<-Beta.Weights(MAF.Groups[[j]],weights.beta, MAF.cutoff, Is.MAF=Is.MAF)
 		} 
 
 		re[[i]]$Score =  re[[i]]$Score * weight1
@@ -100,6 +128,7 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1){
 MetaSKAT_withlist<-function(SMat.list, Info.list, n.cohort, n.each, combined.weight=TRUE, weights.beta=c(1,25),
 method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
 
+	#Info.list1<<-Info.list
 	re<-list()
 	p<-length(Info.list[[1]]$MAF)
 	for(i in 1:n.cohort){
@@ -119,8 +148,9 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
 		Group_Idx<-1:n.cohort
 	}
 
+	# Use AlleleFreq2 instead of MAF, hence Is.MAF=FALSE
 	re = Meta_SKAT.Work(re, n.cohort, combined.weight, n1=n.each, weights.beta=weights.beta, method=method, r.corr=r.corr, is.separate=is.separate, Group_Idx=Group_Idx, 
-	MAF.cutoff=MAF.cutoff)
+	MAF.cutoff=MAF.cutoff, Is.MAF=TRUE )
 
 	return(re)
 
@@ -197,7 +227,6 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 		Z<-SKAT:::Impute(Z,impute.method="fixed")
 	} 
 	
-
 	n.g<-obj$n.g
 	re1<-list()
 	for(i in 1:n.g){
@@ -216,7 +245,7 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 			pi_1<-obj$out[[i]]$pi_1
 			re1[[i]]<-Meta_SKAT_SaveData_Logistic(res,Z1 , X1, pi_1, res.out)
 		} else if (obj$out_type=="K"){
-			re1[[i]]<-Meta_SKAT_SaveData_Kinship(res,Z1 , X1, obj$out[[i]]$P, res.out)
+			re1[[i]]<-Meta_SKAT_SaveData_Kinship(res,Z1 , obj$out[[i]]$P)
 		} else {
 			stop("ERROR: out_type is wrong!")
 		}

@@ -1,4 +1,4 @@
-#include <R.h>
+#include "RFunc.h"
 #include "Meta.h"
 
 /************************************************
@@ -103,6 +103,32 @@ void META_BED_Close(int *err){
         
 }
 
+    
+/*************************************************************
+     Dosage file for read
+*************************************************************/
+void	META_Dosage_Init(char** pfilename, int* pNSample, int* pNSnp, int *err){
+        
+    *err = Dosage_Init(pfilename[0], pNSample[0], pNSnp);
+        
+}
+void	META_Dosage_Read(int * pIdxs, float * Dosage, int * pnum, int *err){
+        
+    *err = Dosage_ReadData(pIdxs, pnum[0], Dosage);
+        
+}
+    
+void META_Dosage_Close(int *err){
+        
+    *err = Dosage_Close();
+        
+}
+    
+void META_Dosage_Info(char * pSNPID, char *pa1, char *pa2 , int *err){
+        
+    *err = Dosage_Info(pSNPID, pa1, pa2);
+}
+    
 
 } // extern "C"
 

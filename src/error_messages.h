@@ -8,7 +8,7 @@
 #ifndef _ERROR_MESSAGES_H        
 #define _ERROR_MESSAGES_H
 
-#define SNP_ID_SIZE 30
+#define SNP_ID_SIZE 50
 
 
 #define NO_ERRORS			0		//no error

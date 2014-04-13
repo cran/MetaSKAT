@@ -233,8 +233,26 @@ Met_SKAT_Get_Pvalue<-function(Score, Phi, r.corr, method, Score.Resampling=NULL)
 	#Score.Resampling1<<-Score.Resampling
 	p.m<-nrow(Phi)
 	Q.res = NULL
+
+	# if Phi==0
+	if(sum(abs(Phi)) == 0){
+		warning("No polymorphic SNPs!",call.=FALSE)
+		return(list(p.value=1, p.value.resampling= NULL, pval.zero.msg=NULL))
+	}
+	
 	if(!is.null(Score.Resampling)){
 		Score.Resampling<-t(Score.Resampling)
+	}
+	if(length(Phi) <=1){
+		r.corr=0
+	} else{
+	
+		if(ncol(Phi) <=10){
+			if(qr(Phi)$rank <= 1){
+				r.corr=0
+			}
+			
+		}
 	}
 
 	if(length(r.corr) > 1){
@@ -242,6 +260,7 @@ Met_SKAT_Get_Pvalue<-function(Score, Phi, r.corr, method, Score.Resampling=NULL)
 		re = SKAT_META_Optimal(Score, Phi, r.corr, method=method, Score.Resampling)
 		return(re)
 	} 
+	
 	if (r.corr == 0){
 		Q<-sum(Score^2)/2
 		
@@ -396,7 +415,7 @@ Meta_SKAT.Work.Groups<-function(re, n.g, ID.Groups, Group_Idx){
 
 
 
-Meta_SKAT.Work<-function(re, n.g, combined.weight=TRUE , n1=NULL, weights.beta=c(1,25),
+Meta_SKAT.Work_OLD<-function(re, n.g, combined.weight=TRUE , n1=NULL, weights.beta=c(1,25),
 method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL){
 
 

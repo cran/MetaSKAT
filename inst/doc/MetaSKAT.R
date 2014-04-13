@@ -4,6 +4,7 @@
 ###################################################
 ### code chunk number 1: data
 ###################################################
+
 library(MetaSKAT)
 data(Example)
 names(Example)
@@ -71,6 +72,9 @@ y<-FAM[,6]
 
 #########################################
 # Test Main File
+
+# need SKAT package to use SKAT_Null_Model function
+library(SKAT)
 
 N.Sample<-length(y)
 obj<-SKAT_Null_Model(y~1)

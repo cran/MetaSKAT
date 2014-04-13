@@ -1,14 +1,15 @@
 
 
 #include "Read_BED.h"
+#include "Read_Dosage.h"
 #include "MatFile.h"
 #include "error_messages.h"
 
 MatFile * 	g_pMatFile_Read;
 MatFile 	g_MatFile_Save;
 int		g_nPop;		/* Number of Population */
-BedFile		g_BedFile;
-
+BedFile         g_BedFile;
+DosageFile		g_DosageFile;
 /****************************************************
  endian is important. The program is only valid
  under little endian.
@@ -147,4 +148,36 @@ int	Bed_Close(){
 	int re =g_BedFile.Close();
 	return re;
 }
+
+
+
+/*************************************************************
+ Dosage file for read
+ 
+ *************************************************************/
+int	Dosage_Init(char* filename, int NSample, int * pNSnp){
+    
+	int re = g_DosageFile.Init(filename, NSample, pNSnp);
+	return re;
+}
+int	Dosage_ReadData(int * pIdxs, int num, float * Dosage){
+    
+	int re =g_DosageFile.ReadData(pIdxs, num, Dosage);
+	return re;
+}
+
+int	Dosage_Close(){
+    
+	int re =g_DosageFile.Close();
+	return re;
+}
+
+int Dosage_Info(char * pSNPID, char *pa1, char *pa2){
+    
+	int re =g_DosageFile.GetDosage_Info(pSNPID, pa1, pa2);
+	return re;    
+    
+}
+
+
 

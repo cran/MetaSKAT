@@ -30,13 +30,14 @@ public:
 	int	Close();
 
 	int	PutData(double * mat, int size);
-	int	GetData(double * mat, int start, int nmarker);
+	int	GetData(double * mat, long start, int nmarker);
 
-	int 	GetNum_Sets();
-	int	GetStart_Pos(int * pos, int * size);
+	int GetNum_Sets();
+	int	GetStart_Pos(long * pos, int * size);
+    int GetStart_Pos_IDX(int idx, long * pos, int * size);
 	int	CheckSavedData();
-    int 	CheckCRC(int start, int size);
-    int SeekG(int start);
+    int CheckCRC(long start, int size);
+    int SeekG(long start);
 	
 private:
 	
@@ -46,14 +47,14 @@ private:
 	std::string	m_filename_read;
 	std::string	m_filename_save;
 
-	std::vector<int>	m_save_startpos;
+	std::vector<long>	m_save_startpos;
 
 	char	m_decode_out[4];
 	char 	m_magic_number[2];	
 	char  	m_buffer_crc[MAX_SIZE_MAT*4];
     float  	m_buffer_float[MAX_SIZE_MAT];
     
-    int m_debugPos;
+    long m_debugPos;
 
 };
 

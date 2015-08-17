@@ -138,7 +138,7 @@ int 	MatFile::PutData(double * mat, int size){
 	m_file_save.write((char *)m_buffer_crc, len);
 
 	/* add the starting position of the last vector */
-	int last = m_save_startpos.back();
+	long last = m_save_startpos.back();
 	m_save_startpos.push_back(last+len +sizeof(uint32_t));
 	return NO_ERRORS;
 
@@ -153,7 +153,7 @@ int 	MatFile::PutData(double * mat, int size){
  n: number of marker
  ******************************************************/
 
-int 	MatFile::GetData(double * mat, int start, int nmarker){
+int 	MatFile::GetData(double * mat, long start, int nmarker){
 
 	int len, size, re;
 	char buff1[10];
@@ -163,8 +163,8 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
     len=size * sizeof(float);
     //Rprintf("len [%d], size[%d], nstart[%d], mat[%p]\n", len,size, start, mat);
 
-	if(len > MAX_SIZE_MAT){
-		return ERORR_MAT_MAX_SIZE;
+	if(size > MAX_SIZE_MAT){
+		return ERORR_MAT_MAX_SIZE ;
 	}
 	if(!m_file_read.is_open()){
 		return ERORR_MAT_FILEOPEN;
@@ -216,7 +216,7 @@ int 	MatFile::GetData(double * mat, int start, int nmarker){
 }
 
 
-int MatFile::SeekG(int start){
+int MatFile::SeekG(long start){
 
 	int idx=0;
 	
@@ -247,7 +247,7 @@ int MatFile::SeekG(int start){
 
 
 
-int 	MatFile::CheckCRC(int start, int size){
+int 	MatFile::CheckCRC(long start, int size){
     
 	int len, re;
 	char buff1[10];
@@ -255,7 +255,7 @@ int 	MatFile::CheckCRC(int start, int size){
     
     len=size * sizeof(float);
 
-	if(len > MAX_SIZE_MAT){
+	if(size > MAX_SIZE_MAT){
 		return ERORR_MAT_MAX_SIZE;
 	}
 	if(!m_file_read.is_open()){
@@ -302,9 +302,10 @@ int 	MatFile::CheckSavedData(){
 
 
 	// Run
-	int i, *ppos, *psize, re;
+	int i, *psize, re;
+    long *ppos;
 	int NumSet = GetNum_Sets();
-	ppos = (int *)F_alloc(NumSet, sizeof(int));
+	ppos = (long *)F_alloc(NumSet, sizeof(long));
     psize = (int *)F_alloc(NumSet, sizeof(int));
     
     //ppos = new int[NumSet];
@@ -341,7 +342,7 @@ int 	MatFile::GetNum_Sets(){
 
 }
 
-int 	MatFile::GetStart_Pos(int * pos, int * size){
+int 	MatFile::GetStart_Pos(long * pos, int * size){
 
 	int i;
 	int len = m_save_startpos.size();
@@ -352,4 +353,13 @@ int 	MatFile::GetStart_Pos(int * pos, int * size){
 	return 0;
 }
 
+int 	MatFile::GetStart_Pos_IDX(int idx, long * pos, int * size){
+    
+	int i = idx;
+
+    *pos = m_save_startpos[i];
+    *size = (m_save_startpos[i+1] - m_save_startpos[i])/4-1;
+	
+	return 0;
+}
 

@@ -43,7 +43,7 @@ Beta.Weights<-function(MAF,weights.beta, Cutoff=1, Is.MAF=TRUE){
 
 
 Meta_SKAT.Work<-function(re, n.g, combined.weight=TRUE, n1=NULL, weights.beta=c(1,25),
-method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.MAF=TRUE){
+method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.MAF=TRUE, missing_cutoff=0.15){
 
 
 	# optimal =optimal.mod
@@ -59,6 +59,8 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.M
 	MAF.Groups<-list()
 	Map.Groups<-rep(0,n.g)
 
+
+	#re<<-re
 	MAF.list<-list()
 	for(i in 1:n.g){
 	
@@ -97,7 +99,14 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.M
 			j<-Map.Groups[i]
 			weight1<-Beta.Weights(MAF.Groups[[j]],weights.beta, MAF.cutoff, Is.MAF=Is.MAF)
 		} 
-
+		
+		# if missing < missing_cutoff
+		
+		idx_missing_exclude<-which(re[[i]]$MissingRate > missing_cutoff)
+		if(length(idx_missing_exclude) > 0){
+			weight1[idx_missing_exclude]<-0
+		}
+		
 		re[[i]]$Score =  re[[i]]$Score * weight1
 		re[[i]]$SMat.Summary =  t(t(re[[i]]$SMat.Summary * weight1) * weight1)
 
@@ -126,7 +135,7 @@ method="davies", r.corr=0, is.separate=FALSE, Group_Idx=NULL, MAF.cutoff=1, Is.M
 # Assume SMat and Setinfo are already aligned
 
 MetaSKAT_withlist<-function(SMat.list, Info.list, n.cohort, n.each, combined.weight=TRUE, weights.beta=c(1,25),
-method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
+method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1, missing_cutoff=0.15){
 
 	#Info.list1<<-Info.list
 	re<-list()
@@ -137,9 +146,10 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
 		if(length(idx_miss) > 0){
 			Info.list[[i]]$Score[idx_miss] = 0
 			Info.list[[i]]$MAF[idx_miss] = 0
+			Info.list[[i]]$MissingRate[idx_miss] = 1
 		}
 
-		re1<-list( Score=Info.list[[i]]$Score, SMat.Summary = SMat.list[[i]], MAF=Info.list[[i]]$MAF )  
+		re1<-list( Score=Info.list[[i]]$Score, SMat.Summary = SMat.list[[i]], MAF=Info.list[[i]]$MAF, MissingRate=Info.list[[i]]$MissingRate)  
 		re[[i]]<-re1	
 		
 	}
@@ -150,14 +160,14 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
 
 	# Use AlleleFreq2 instead of MAF, hence Is.MAF=FALSE
 	re = Meta_SKAT.Work(re, n.cohort, combined.weight, n1=n.each, weights.beta=weights.beta, method=method, r.corr=r.corr, is.separate=is.separate, Group_Idx=Group_Idx, 
-	MAF.cutoff=MAF.cutoff, Is.MAF=TRUE )
+	MAF.cutoff=MAF.cutoff, Is.MAF=TRUE, missing_cutoff=missing_cutoff )
 
 	return(re)
 
 }
 
 MetaSKAT_MSSD_OneSet<-function(Cohort.Info, SetID, combined.weight=TRUE, weights.beta=c(1,25),
-method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
+method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1, missing_cutoff=0.15){
 
 	n.cohort = Cohort.Info$n.cohort
 	n.each=rep(0,n.cohort)
@@ -172,7 +182,7 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, MAF.cutoff=1){
 	
 	re<-MetaSKAT_withlist(temp1$SMat.list, temp1$Info.list, n.cohort, n.each, combined.weight=combined.weight, 
 	weights.beta=weights.beta, method=method, r.corr= r.corr, is.separate = is.separate, Group_Idx=Group_Idx, 
-	MAF.cutoff=MAF.cutoff)
+	MAF.cutoff=MAF.cutoff, missing_cutoff=missing_cutoff)
 	
 	return(re)
 
@@ -203,8 +213,87 @@ MetaSKAT_MSSD_ALL<-function(Cohort.Info, ...){
 #
 #	Genotype matrix Z should be matched with y and X
 #
+
+# change from here
 MetaSKAT_wZ<-function(Z, obj, combined.weight=TRUE, weights.beta=c(1,25),
-method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
+method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, impute.method="fixed", impute.estimate.maf=1, missing_cutoff=0.15){
+
+
+	if(is.matrix(Z)!= TRUE){
+		stop("ERROR: Z is not a matrix!")
+	}
+	if(class(obj)!= "META_NULL_Model" && class(obj)!= "META_NULL_Model_EmmaX"){
+		stop("ERROR: obj class is not either META_NULL_Model or META_NULL_Model_EmmaX!")
+	}
+	
+	IDX_MISS<-union(which(is.na(Z)),which(Z == 9))
+	if(length(IDX_MISS) > 0){
+		Z[IDX_MISS]<-NA
+	} 
+	
+	nSNP<-ncol(Z)
+	n<-nrow(Z)
+	n.g<-obj$n.g
+	
+	# Calculate missing rate : Since Z is imputed before calling Meta_SKAT_SaveData when impute.estimate.maf==1, 
+	# missing rate should be calculated before calling this function.
+	
+	missing.ratio.Z = matrix(rep(0, nSNP*n.g), nrow=n.g)
+	for(i in 1:n.g){
+		ID<-obj$ID[[i]]
+		Z1<-as.matrix(Z[ID,])
+		n1<-nrow(Z1)
+		for(j in 1:nSNP){
+			missing.ratio.Z[i,j]<-length(which(is.na(Z1[,j])))/n1
+		}
+	}
+	
+	Is.impute.cohortwise= FALSE
+	if(length(IDX_MISS) > 0){
+
+		msg<-sprintf("The missing genotype rate is %f. Imputation is applied.", (length(IDX_MISS))/length(Z) )
+
+		warning(msg,call.=FALSE)
+		
+		if(impute.estimate.maf==1){
+			Is.impute.cohortwise = TRUE
+		
+		} else if(impute.estimate.maf==2){
+			Z<-SKAT:::Impute(Z,impute.method=impute.method)
+		} else {
+			stop("ERROR: impute.estimate.mat is wrong! it should be either 1 or 2")
+		}
+	} 
+	
+	
+	re1<-list()
+	for(i in 1:n.g){
+
+		ID<-obj$ID[[i]]
+		Z1<-as.matrix(Z[ID,])
+		re1[[i]]<-Meta_SKAT_SaveData(Z1, obj$out[[i]], SetID=NULL, impute.method = impute.method)
+		
+		re1[[i]]$MissingRate = missing.ratio.Z[i,]
+	}
+
+	if(is.null(Group_Idx)){
+		Group_Idx<-1:n.g
+	}
+
+	re = Meta_SKAT.Work(re1, n.g, combined.weight, n1=obj$n.each, weights.beta=weights.beta, method=method, r.corr=r.corr,is.separate=is.separate
+	, Group_Idx=Group_Idx, missing_cutoff=missing_cutoff)
+
+	return(re)
+
+}
+
+
+
+
+
+MetaSKAT_wZ_OLD<-function(Z, obj, combined.weight=TRUE, weights.beta=c(1,25),
+method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, impute.method="fixed", impute.estimate.maf=1, missing_cutoff=0.15){
+
 
 	if(is.matrix(Z)!= TRUE){
 		stop("ERROR: Z is not a matrix!")
@@ -218,13 +307,29 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 	if(length(IDX_MISS) > 0){
 		Z[IDX_MISS]<-NA
 	} 
-
+	
+	nSNP<-ncol(Z)
+	n<-nrow(Z)
+	Is.impute.cohortwise= FALSE
+	missing.ratio.Z = rep(0, nSNP)
+	for(i in 1:nSNP){
+		missing.ratio.Z[i]<-length(which(is.na(Z[,i])))/n
+	}
+	
 	if(length(IDX_MISS) > 0){
 
 		msg<-sprintf("The missing genotype rate is %f. Imputation is applied.", (length(IDX_MISS))/length(Z) )
 
 		warning(msg,call.=FALSE)
-		Z<-SKAT:::Impute(Z,impute.method="fixed")
+		
+		if(impute.estimate.maf==1){
+			Is.impute.cohortwise = TRUE
+		
+		} else if(impute.estimate.maf==1){
+			Z<-SKAT:::Impute(Z,impute.method=impute.method)
+		} else {
+			stop("ERROR: impute.estimate.mat is wrong! it should be either 1 or 2")
+		}
 	} 
 	
 	n.g<-obj$n.g
@@ -232,7 +337,11 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 	for(i in 1:n.g){
 
 		ID<-obj$ID[[i]]
-		Z1<-as.matrix(Z[ID,])
+		if(Is.impute.cohortwise ){
+			Z1<-as.matrix(Z[ID,])
+		} else {
+			Z1<-SKAT:::Impute(as.matrix(Z[ID,]),impute.method=impute.method)
+		}
 		res<-obj$out[[i]]$res
 		res.out<-obj$out[[i]]$res.out
 		X1<-obj$out[[i]]$X1
@@ -256,7 +365,8 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL){
 		Group_Idx<-1:n.g
 	}
 
-	re = Meta_SKAT.Work(re1, n.g, combined.weight, n1=obj$n.each, weights.beta=weights.beta, method=method, r.corr=r.corr,is.separate=is.separate, Group_Idx=Group_Idx)
+	re = Meta_SKAT.Work(re1, n.g, combined.weight, n1=obj$n.each, weights.beta=weights.beta, method=method, r.corr=r.corr,is.separate=is.separate
+	, Group_Idx=Group_Idx, missing_cutoff=missing_cutoff)
 
 	return(re)
 

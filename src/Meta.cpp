@@ -57,7 +57,7 @@ int	Open_NewMatFile_Read(int idx, const char * FileName){
 
 }
 
-int	Mat_GetData(int idx, double * mat, int start, int nmarker){
+int	Mat_GetData(int idx, double * mat, long start, int nmarker){
 
 	int re;
 	if(idx >= g_nPop){
@@ -116,9 +116,17 @@ int	Mat_Num_Sets(){
 	return re;
 }
 
-int	Mat_GetStart_Pos(int * pos, int * size){
+int	Mat_GetStart_Pos(double * pos, int * size){
 
-	int re = g_MatFile_Save.GetStart_Pos(pos, size);
+    int i, size1, re;
+    long pos1;
+    int len = g_MatFile_Save.GetNum_Sets();
+    for(i=0;i<len;i++){
+        re = g_MatFile_Save.GetStart_Pos_IDX(i, &pos1, &size1);
+        pos[i] = (double) pos1;
+        size[i] = size1;
+    }
+	
 	return re;
 }
 

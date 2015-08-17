@@ -14,10 +14,9 @@
 \maketitle
 
 \section{Overview}
-MetaSKAT is a package for  meta-analysis  SKAT, SKAT-O and burden tests.
-Users can conduct a test with all individual level genotype data
-or summary statistics from study cohorts. It also provides functions 
-to generate summary statistics.
+MetaSKAT is a package for  meta-analysis Burden test, SKAT, SKAT-O.
+Users can carry out a gene-based test with all individual level genotype data or summary statistics from each study cohort. 
+The package also provides functions to generate summary statistics.
 
 \section{Meta-analysis with individual level data}
 
@@ -32,8 +31,8 @@ attach(Example)
 @
 
 To test associations, one needs to run Meta\_Null\_Model function first 
-to obtain parameters and residuals from the null model of no association.
-After, MetaSKAT can be conducted by running MetaSKAT\_wZ. Please see the manual.
+to obtain parameters and residuals from the null model of no associations.
+After, p-values can be calculated by running MetaSKAT\_wZ. 
 
 <<MetaSKAT1>>=
 # continuous trait 
@@ -52,7 +51,10 @@ MetaSKAT_wZ(Z.list[[1]], obj, method="optimal")$p.value
 
 @
 
-In this example, MetaSKAT/MetaSKAT-O were conducted with assuming that genetic effects were homogeneous across studies. In addition, the common weights from pooled MAFs were used. If one assumes genetic effects are heterogeneous across study cohorts and want to use study specific MAFs to calculate weights, please set is.separate = TRUE (assume heterogeneous genetic effects)  and combined.weight = FALSE (study specific MAFs). 
+In this example, MetaSKAT/MetaSKAT-O are conducted with assuming that genetic effects are homogeneous across study cohorts. 
+In addition, the common weights from pooled MAFs are used. 
+If one assumes genetic effects are heterogeneous across study cohorts and wants to use study specific MAFs to calculate weights, 
+please use is.separate = TRUE (heterogeneous genetic effects) and combined.weight = FALSE (study specific MAFs). 
  
 <<MetaSKAT11>>=
 # rho=0 (SKAT)
@@ -64,12 +66,11 @@ combined.weight=FALSE)$p.value
 
 @
 
-Groups of study cohorts can be specified using Group\_Idx to run tests with assuming group specific heterogeneity.
-Suppose the first two cohorts are European cohorts and the last cohort is an African American cohort. 
-If you want to run MetaSKAT with assuming ancestry group specific heterogeneity, 
-you can set Group\_Idx=c(1,1,2), which indicates the first two cohorts belong to the same group. 
-The following example conducts a test with group specific heterogeneity with group specific weights.
-
+Groups of study cohorts can be specified using Group\_Idx to run tests with group specific heterogeneity.
+Suppose the first two cohorts are European-based and the last cohort is African American-based. 
+If the ancestry group specific heterogeneity is assumed, 
+one can set Group\_Idx=c(1,1,2), which indicates the first two cohorts belong to the same group. 
+The following example carries out MetaSKAT/MetaSKAT-O with group specific heterogeneity and group specific weights.
 
 <<MetaSKAT11>>=
 # rho=0 (SKAT). First two cohorts belong to the same group
@@ -89,11 +90,9 @@ MetaSKAT_wZ(Z.list[[1]], obj, method="optimal"
 \subsection{Generate Meta SSD (MSSD) and Info (MInfo) files}
 
 MetaSKAT has a function to generate MSSD and MInfo files that have summary statistics. 
-MSSD is a binary file with between relationship matrices of markers, and 
-MInfo is a tex file with information on SNP sets and markers. You need both files to run
-MetaSKAT if you don't have individual level genotype data. 
-To generate them, the original data should be stored in binary plink formatted files, and users should provide a SetID file to define SNP sets.
-
+MSSD is a binary file with between relationship matrices of SNPs, and 
+MInfo is a tex file with information on SNP sets. 
+To generate them, the original data should be stored in binary plink formatted files, and users should provide a SetID file that defines SNP sets.
 The following code reads 01.bed, 01.bim, 01.SetID files and generates 01.MSSD and 01.MInfo files. 
 
 <<MetaSKAT2>>=
@@ -149,7 +148,7 @@ for( IDX_G in 2:3){
 
 \subsection{Read Meta SSD and Info files, and run MetaSKAT}
 
-The following code opens MSSD and MInfo files from different study cohorts, and then 
+The following code opens MSSD and MInfo files from three study cohorts, and then 
 computes p-values. 
 
 <<MetaSKAT4>>=

@@ -46,8 +46,9 @@ private:
     char	*m_SNPID;	
     char	*m_Allele1;	
     char	*m_Allele2;	
-    unsigned char	*m_pbuffer;	
+    char	*m_pbuffer;	
     unsigned int * m_POS;
+    
 	
 	int		m_nSample;
 	int		m_nSNP;

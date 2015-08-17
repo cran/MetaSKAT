@@ -29,9 +29,11 @@ void	META_MSSD_Read_Open(int * pidx, char ** pFileName, int * err){
 	*err = Open_NewMatFile_Read(pidx[0], pFileName[0]);
 }
 
-void	META_MSSD_GetData(int * pidx, double * mat, int * pstart, int * pnmarker, int *err){
+void	META_MSSD_GetData(int * pidx, double * mat, double * pstart, int * pnmarker, int *err){
 
-	*err =Mat_GetData(pidx[0], mat, pstart[0], pnmarker[0]);
+    long start = (long)pstart[0];
+	*err =Mat_GetData(pidx[0], mat, start, pnmarker[0]);
+    
 }
 
 void	META_MSSD_Read_Close(int * pidx, int * err){
@@ -71,7 +73,7 @@ void	META_MSSD_Num_Sets(int * nsets, int *err){
 	*nsets = Mat_Num_Sets();
 }
 
-void	META_MSSD_GetStart_Pos(int * pos, int * size, int *err){
+void	META_MSSD_GetStart_Pos(double * pos, int * size, int *err){
 
 	*err = Mat_GetStart_Pos(pos, size);
 

@@ -11,10 +11,10 @@
  }
  \arguments{
     \item{File.MSSD.vec}{a vector of MSSD files. Each element represents a MSSD file of each study.}
-    \item{File.MInfo.vec}{a vector of Meta Info files. Each element represents a Meta Info file of each study.}
+    \item{File.MInfo.vec}{a vector of MInfo files. Each element represents a MInfo file of each study.}
 }
 \value{
-	This function returns data object with information of each cohort.
+	This function returns an data object. The returned object will be used to run MetaSKAT_MSSD_OneSet or MetaSKAT_MSSD_ALL.
 }
 \details{
  	Users should open MSSD and MInfo files to run MetaSKAT_MSSD_OneSet or MetaSKAT_MSSD_ALL.

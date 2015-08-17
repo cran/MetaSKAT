@@ -51,11 +51,13 @@ int DosageFile::GetLineNum(){
 
 int DosageFile::GetDosage_Info(char *pSNPID, char *pa1, char *pa2){
     
+
     memcpy(pSNPID, m_SNPID, m_nSNP * sizeof(char) * (SNP_ID_SIZE+1));
     memcpy(pa1, m_Allele1, m_nSNP * sizeof(char) );
-    memcpy(pa2, m_Allele1, m_nSNP * sizeof(char) );
+    memcpy(pa2, m_Allele2, m_nSNP * sizeof(char) );
     
-    return 1;
+    
+    return NO_ERRORS;
 
     
 }
@@ -178,11 +180,11 @@ int 	DosageFile::Init(char* filename, int NSample, int *pNSnp){
     
 	m_nSample = NSample;
 	m_nSNP = NSnp;
-	m_BlockSize = m_nSample * 10;
+	m_BlockSize = m_nSample * sizeof(float);
     m_TotalSize = NSample * NSnp;
 
     
-	m_pbuffer = (unsigned char *) F_alloc(m_BlockSize, sizeof(unsigned char));
+	m_pbuffer = (char *) F_alloc(m_BlockSize, sizeof(char));
     m_pDosage = (float *) F_alloc(m_nSample, sizeof(float));
 	m_SNPID = (char *) F_alloc(NSnp * (SNP_ID_SIZE+1), sizeof(unsigned char));
 	m_Allele1 = (char *) F_alloc(NSnp, sizeof(char));
@@ -196,28 +198,42 @@ int 	DosageFile::Init(char* filename, int NSample, int *pNSnp){
     
 	m_filename = filename;
     m_tempfilename = m_filename + ".MetaTemp";
-    
+ 
+    if(m_dosage.is_open()){
+        m_dosage.close();
+    }
 	m_dosage.open(m_filename.c_str());
 	if (!this->m_dosage)
 	{
-		re = ERORR_BIM_OPEN_FILE4READ;
+		re = 20;
+        
 		return re;
 	}
-    
+
+    if(m_tempfile.is_open()){
+        m_tempfile.close();
+    }
     m_tempfile.open(m_tempfilename.c_str(), std::ios::out|std::ios::binary|std::ios::trunc);
 	if (!this->m_tempfile)
 	{
-		re = ERORR_BIM_OPEN_FILE4READ;
+		re = 21;
+       
 		return re;
 	}    
     
 
     re = ReadDosageFile();
     m_tempfile.close();
+    
+    
+    if(m_tempfileRead.is_open()){
+        m_tempfileRead.close();
+    }
     m_tempfileRead.open(m_tempfilename.c_str(), std::ios::in|std::ios::binary);
 	if (!this->m_tempfileRead)
 	{
-		re = ERORR_BIM_OPEN_FILE4READ;
+		re = 22;
+        //printf("Open %s error!\n",  m_tempfilename.c_str());
 		return re;
 	} 
     
@@ -230,7 +246,14 @@ int 	DosageFile::Close(){
 	if(m_dosage.is_open()){
 		m_dosage.close();
 	}
-
+	if(m_tempfile.is_open()){
+		m_tempfile.close();
+	}
+	if(m_tempfileRead.is_open()){
+		m_tempfileRead.close();
+        remove(m_tempfilename.c_str());
+	}
+    
     F_free(m_pbuffer);
     F_free(m_pDosage);
     F_free(m_SNPID);
@@ -244,6 +267,8 @@ int 	DosageFile::Close(){
     m_Allele1=NULL;
     m_Allele2=NULL;
     m_POS=NULL;
+    
+
 	return 0;
 }
 
@@ -264,12 +289,15 @@ int	DosageFile::ReadData(int * pIdxs, int num, float * pDosage){
             return re;
         }
         
-        m_tempfileRead.read((char *)(pDosage + total), m_nSample * sizeof(float));
+        m_tempfileRead.read(m_pbuffer, m_nSample * sizeof(float));
+        memcpy((pDosage + total), m_pbuffer, m_nSample * sizeof(float));
         if(!m_tempfileRead){
-            return ERROR_BED_READ;
+            return 23;
         }
-        total +=m_nSample * sizeof(float);
+        //printf("[%d][%d][%d][%d][%d][%f]\n", i,num, Idx,start, total,pDosage[total] );
+        total +=m_nSample ;
 
+        
 	}
 
 	return 0;
@@ -292,6 +320,7 @@ int DosageFile::SeekG(int start){
 	
 	m_tempfileRead.seekg(start ,std::ios::beg); // +3 because of first 3 bytes in the file
 	
+    idx=0;
 	while(!m_tempfileRead.good()){
 		// try one more 
 		m_tempfileRead.clear();

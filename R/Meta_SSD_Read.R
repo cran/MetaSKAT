@@ -6,6 +6,7 @@ assign("META_SSD_FILE_OPEN_Read.isInit", 0, envir=MetaSSDR.env)
 # return full path of File.MetaInfo
 Open_MSSD_File_2Read<-function(File.MSSD.vec, File.MInfo.vec){
 
+	File.Weight.vec=NULL
 	MetaSKAT_Is_IsLittleEndian()
 	
 	err_code<-0
@@ -20,10 +21,14 @@ Open_MSSD_File_2Read<-function(File.MSSD.vec, File.MInfo.vec){
 	# Check the existence of files 
 	for(i in 1:n.cohort){
 		File.MSSD.vec[i]<-normalizePath(File.MSSD.vec[i] ,mustWork =FALSE)
-		File.MInfo.vec[i]<-normalizePath(File.MInfo.vec[i] ,mustWork =FALSE)	
-	
+		File.MInfo.vec[i]<-normalizePath(File.MInfo.vec[i] ,mustWork =FALSE)
+		
 		SKAT:::Check_File_Exists(File.MSSD.vec[i])
 		SKAT:::Check_File_Exists(File.MInfo.vec[i])
+					
+		if(!is.null(File.Weight.vec)){
+			SKAT:::Check_File_Exists(File.Weight.vec[i])
+		}
 	}
 	
 	# Read files
@@ -36,9 +41,13 @@ Open_MSSD_File_2Read<-function(File.MSSD.vec, File.MInfo.vec){
 		file.idx<-i-1
 		File.MSSD<-normalizePath(File.MSSD.vec[i] ,mustWork =FALSE)
 		File.MetaInfo<-normalizePath(File.MInfo.vec[i] ,mustWork =FALSE)
-	
+		
+		File.Weight=NULL
+		if(!is.null(File.Weight.vec)){
+			File.Weight<-normalizePath(File.Weight.vec[i] ,mustWork =FALSE)
+		} 
 		temp<-.C("META_MSSD_Read_Open", as.integer(file.idx), as.character(File.MSSD), as.integer(err_code))	
-		data.info<-Read_Info_File(File.MetaInfo)
+		data.info<-Read_Info_File(File.MetaInfo, File.Weight)
 		
 		err_code<-temp[[3]]
 		Print_Error_CODE(err_code)
@@ -78,7 +87,7 @@ Read_Read_MSSD_File<-function(cohort_idx, start, nmarker){
 	size=nmarker * nmarker
 
 	err_code<-0
-	temp<-.C("META_MSSD_GetData", as.integer(cohort_idx-1), double(size), as.integer(start), as.integer(nmarker), as.integer(err_code))
+	temp<-.C("META_MSSD_GetData", as.integer(cohort_idx-1), double(size), as.double(start), as.integer(nmarker), as.integer(err_code))
 
 	err_code<-temp[[5]]
 	Print_Error_CODE(err_code)	
@@ -148,6 +157,8 @@ Get_META_Data_OneSet_Align<-function(SMat.list, Info.list, IsExistSNV,  n.cohort
 			data1<-Info.list[[i]]
 			data1$IDX1=1:length(data1$SNPID)
 			data2.org<-merge(data.master, data1, by.x="SNPID", by.y="SNPID", all.x=TRUE)
+			
+			#data2.org1<<-data2.org
 			data2<-data2.org[order(data2.org$IDX),]
 			
 			IDX<-which(!is.na(data2$IDX1))
@@ -250,11 +261,34 @@ Read_Info_File_Header<-function(File.MetaInfo){
 
 }
 
-Read_Info_File<-function(File.MetaInfo){
+Read_Info_File<-function(File.MetaInfo, File.Weight=NULL){
 
 	header=Read_Info_File_Header(File.MetaInfo)
 	
 	info<-read.table(File.MetaInfo, header=TRUE, stringsAsFactors=FALSE)
+	n.info=dim(info)[1]
+	info$IDXALL=1:n.info
+	Is.WeightFile=FALSE
+	
+	if(!is.null(File.Weight)){
+			
+		Is.WeightFile=TRUE
+		weight<-read.table(File.MetaInfo, header=FALSE, stringsAsFactors=FALSE)
+		colnames(weight)<-c("SNPID", "W")
+		info1<-merge(info, weight, by.x="SNPID", by.y="SNPID", all.x=TRUE, all.y=FALSE)
+		
+		# return error if there exists a missing
+		n.miss<-which(is.na(info1$weight))
+		if(n.miss > 0){
+			msg<-sprintf("%d variants in %s do not have weight values in %s!", 
+			n.miss, File.MetaInfo, File.Weight)
+			stop(msg)
+		}
+		
+		info<-info1[order(info1$IDXALL),]
+	}
+
+
 	info$SetID<-as.character(info$SetID)
 	x<-unique(info$SetID_numeric)
 	x.n<-length(x)
@@ -282,7 +316,9 @@ Read_Info_File<-function(File.MetaInfo){
 		hash_set[[SetID1]]<-val
 	}
 	
-	re<-list(Info=info, hash_set=hash_set, set_unique=set_unique, header=header)
+
+	
+	re<-list(Info=info, hash_set=hash_set, set_unique=set_unique, header=header, Is.WeightFile=Is.WeightFile)
 	return(re)
 }
 
@@ -294,196 +330,4 @@ Read_Info_File<-function(File.MetaInfo){
 #	val<-i:rbinom(1,20,0.5)	
 #	hash1[[ID]]<-val
 #}
-
-
-ReadPermu_Header<-function(File.Permu){
-
-	con = file(File.Permu, "rb")
-	header<-readBin(con, integer(), n = 10, size = 8)
-	cat(header, "\n")
-	
-	# n.permu, n.all, n, nSets, nSNPs, nSNPs.unique
-	re = list(con=con, n.permu=header[2], n.all=header[3], n=header[4], nSets=header[5], nSNPs.unique=header[6])
-	if(header[1] != 1){
-		
-		close(con)
-		stop("Verion information in File.Permu is not correct!")
-	}
-	return(re)
-
-}
-
-# one element of EachInfo.Permu
-GetPermu_Score<-function(con, nSNP, nPermu,  StartPosPermu){
-
-
-	cat("Start:", StartPosPermu, "\n")
-	#StartPosPermu = 8 * 10
-	seek(con, where = StartPosPermu, origin = "start")
-	out = readBin(con, double(), n = nSNP * (nPermu +1) , size = 8)
-	out.m = matrix(out, byrow=TRUE, nrow=nSNP)
-	return(out.m)
-}
-
-
-GetPermu_Info<-function(File.MInfo.vec, File.Permu.vec){
-
-	n.cohort<-length(File.MInfo.vec)
-	
-	if(length(File.MInfo.vec) != length(File.Permu.vec)){
-		stop("Different numbers of Meta Info and Permu files!")
-	}
-	
-	cat("Number of cohorts = ", n.cohort, "\n")
-	
-	# Check the existence of files 
-	for(i in 1:n.cohort){
-		File.Permu.vec[i]<-normalizePath(File.Permu.vec[i] ,mustWork =FALSE)
-		File.MInfo.vec[i]<-normalizePath(File.MInfo.vec[i] ,mustWork =FALSE)	
-	
-		SKAT:::Check_File_Exists(File.Permu.vec[i])
-		SKAT:::Check_File_Exists(File.MInfo.vec[i])
-	}
-	
-	# Read files
-	
-	re<-list()
-	re.Permu<-list()
-	re.SetInfo<-list()
-	for(i in 1:n.cohort){
-		file.idx<-i-1
-		File.Permu<-File.Permu.vec[i] 
-		File.MetaInfo<-File.MInfo.vec[i] 
-		
-		data.info<-Read_Info_File(File.MetaInfo)
-		re.Permu[[i]]<-ReadPermu_Header(File.Permu)
-		re[[i]]<-data.info
-		
-	}
-	
-	# Get unique sets
-	Set_unique<-NULL
-	for(i in 1:n.cohort){
-		Set_unique<-union(Set_unique, re[[i]]$set_unique)
-	}	
-	
-	info<-list(n.cohort=n.cohort, Set_unique = Set_unique, EachInfo=re, EachInfo.Permu=re.Permu)
-	
-	return(info)
-
-}
-
-
-GetPermu_obj<-function(Permu.Info, SetID){
-
-	n.cohort = Permu.Info$n.cohort	
-	IsExistSNV<-rep(0, n.cohort)
-	Info.list<-list()
-	Permu.list<-list()
-	Score.list<-list()
-	N.Permu<-rep(0, n.cohort)
-	
-	for(i in 1:n.cohort){
-		idx<-Permu.Info$EachInfo[[i]]$hash_set[[SetID]]
-		
-		if(is.null(idx)){
-			IsExistSNV[i]<-0
-			
-		} else {
-			IsExistSNV[i]<-1
-			nSNP = length(idx)
-			N.Permu[i] = Permu.Info$EachInfo.Permu[[i]]$n.permu
-
-			Info.list[[i]]<-Permu.Info$EachInfo[[i]]$Info[idx,]
-			StartPosPermu = Info.list[[i]]$StartPOSPermu[1]
-			out.m=GetPermu_Score(Permu.Info$EachInfo.Permu[[i]]$con, nSNP , N.Permu[i],  StartPosPermu)
-			#out.m1<<-out.m
-			#score1<<-Info.list[[i]]$Score
-			
-			Permu.list[[i]] = out.m[,-1]
-			Score.list[[i]] = out.m[,1]
-			
-			# check score.list
-			cat("Check: ", sum((Score.list[[i]] - Info.list[[i]]$Score)^2), "\n")
-			#cat(Score.list[[i]], "\n")
-			#cat(Info.list[[i]]$Score, "\n")
-		}
-	}
-	#Info.list1<<-Info.list
-	
-	obj.oneset = Get_META_Data_OneSet_Align(SMat.list=NULL, Info.list=Info.list, IsExistSNV=IsExistSNV,  n.cohort=n.cohort, Is.SMat=FALSE)
-	n.all = obj.oneset$n.all
-	
-	Permu.list.new<-list()
-	Score.list.new<-list()
-	
-	for(i in 1:n.cohort){
-		n1 = N.Permu[i] 
-		Permu.list.new[[i]]<-matrix(rep(0, n1*n.all), ncol=n1)
-		Score.list.new[[i]]<-rep(0, n.all)
-		
-		if(IsExistSNV[i] == 1){	
-			IDX<-obj.oneset$IDX.list[[i]]
-			IDX1<-obj.oneset$IDX1.list[[i]]
-			
-			Permu.list.new[[i]][IDX,]<-Permu.list[[i]][IDX1,] 
-			Permu.list.new[[i]]<-Permu.list.new[[i]]* obj.oneset$Sign.list[[i]]
-			
-			Score.list.new[[i]][IDX]<-Score.list[[i]][IDX1] 
-			Score.list.new[[i]]<-Score.list.new[[i]]* obj.oneset$Sign.list[[i]]
-		} 
-	}
-	
-	re=list(Info.list.new=obj.oneset$Info.list.new, Permu.list.new=Permu.list.new, Score.list.new=Score.list.new, n.cohort=n.cohort, N.Permu = N.Permu)
-	return(re)	
-}
-
-
-GetPermu_SKAT_Pvalue<-function(Permu.Info, SetID, n.Resampling=10000){
-
-	n.cohort = Permu.Info$n.cohort	
-	obj=GetPermu_obj(Permu.Info, SetID)
-	
-	Score1<-NULL
-	Score.mat<-NULL
-	for(i in 1:n.cohort){
-		Score.temp = obj$Score.list.new[[i]]
-		
-		if(i==1){
-			Score1 = Score.temp
-		} else {
-			Score1 = Score1 + Score.temp
-		}	
-	}
-	TestStat = sum(Score1^2)
-	
-	for(i in 1:n.cohort){
-	
-		id<-sample.int(obj$N.Permu[i] ,n.Resampling, replace = TRUE)
-	
-		if(i==1){
-			Score.mat<-obj$Permu.list.new[[i]][,id]
-		} else {
-			Score.mat = Score.mat + obj$Permu.list.new[[i]][,id]
-		}
-	
-	}
-	TestStat.R<-colSums(Score.mat^2)
-	
-	#TestStat1<<-TestStat
-	#TestStat.R1<<-TestStat.R
-	
-	pval<-length(which(TestStat.R >= TestStat))/(n.Resampling+1)
-	
-	return(pval)
-
-}
-
-Permu_Close<-function(Permu.Info){
-
-	n.cohort = Permu.Info$n.cohort
-	for(i in 1:n.cohort){
-		close(Permu.Info$EachInfo.Permu[[i]]$con)
-	}
-}
 

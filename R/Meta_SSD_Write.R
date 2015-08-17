@@ -102,13 +102,13 @@ Open_Dosage_File<-function(File.Dosage,  N.Sample){
 	temp<-.C("META_Dosage_Info",SNPID, a1, a2 , as.integer(err_code))
 
 	error_code<-temp[[4]]
-	Print_Error_SSD(error_code)
+	Print_Error_CODE(error_code)
 		
 	SNPID.m<-matrix(temp[[1]], byrow=TRUE, nrow=nMarker)
 	SNPID.c<-apply(SNPID.m, 1, rawToChar)
 
-	a1 = rawToChar(temp[[2]])
-	a2 = rawToChar(temp[[3]])				
+	a1 = apply(cbind(temp[[2]]),1, rawToChar) 
+	a2 = apply(cbind(temp[[3]]),1, rawToChar)			
 	
 	DosageInfo<-data.frame(SnpID=SNPID.c, a1=a1, a2=a2, idx=1:nMarker)
 	
@@ -135,7 +135,8 @@ Read_From_Dosage_File<-function(IDX, N.Sample){
 
 	Z<-rep(11,size)
 
-	temp<-.C("META_Dosage_Read",as.integer(IDX),as.raw(Z),as.integer(N.SNP), as.integer(err_code))
+
+	temp<-.C("META_Dosage_Read",as.integer(IDX),as.single(Z),as.integer(N.SNP), as.integer(err_code))
 
 	error_code<-temp[[4]]
 	Print_Error_CODE(error_code)
@@ -148,6 +149,7 @@ Read_From_Dosage_File<-function(IDX, N.Sample){
 	}
 	MAF<-colMeans(Z.out, na.rm=TRUE)/2
 	
+		
 	return(list(Z=Z.out, MAF=MAF))
 
 }
@@ -322,12 +324,12 @@ Check_Saved<-function(nsets, StartPos){
 	pos1<-rep(0,nsets)
 	size1<-rep(0,nsets)
 	
-	temp<-.C("META_MSSD_GetStart_Pos", as.integer(pos1), as.integer(size1), as.integer(err_code) )
+	temp<-.C("META_MSSD_GetStart_Pos", as.double(pos1), as.integer(size1), as.integer(err_code) )
 	err_code<-temp[[3]]
 	Print_Error_CODE(err_code)
 	
 	pos1<-temp[[1]]
-	if( sum((pos1-StartPos)^2) != 0){
+	if( sum((pos1-StartPos)^2) > 10^(-10)){
 		msg<-sprintf("Error: MSSD file save- startpos \n")
 		cat("[POS1]", pos1, "\n")
 		cat("[POS2]", StartPos, "\n")
@@ -414,9 +416,27 @@ Write_To_MetaPermu<-function(con, Score, Score.Resampling, startpos){
 }
 
 
+Generate_Meta_Files_FromDosage<-function(obj, File.Dosage, File.SetID, File.MSSD, File.MInfo, N.Sample, File.Permu=NULL, data=NULL, impute.method="fixed"){
 
-Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, File.MInfo, N.Sample, File.Permu=NULL, data=NULL
-, Is.Dosage=FALSE){
+	Generate_Meta_Files_Work(obj=obj, File.Bed=File.Dosage, File.Bim=NULL, 
+	File.SetID=File.SetID, File.MSSD=File.MSSD, File.MInfo=File.MInfo, N.Sample=N.Sample, File.Permu=File.Permu
+	,data=data, Is.Dosage=TRUE, impute.method=impute.method)
+	
+	Close_Dosage_File()
+}
+
+Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, File.MInfo, N.Sample, File.Permu=NULL, data=NULL, impute.method="fixed"){
+
+	Generate_Meta_Files_Work(obj=obj, File.Bed=File.Bed, File.Bim=File.Bim, 
+	File.SetID=File.SetID, File.MSSD=File.MSSD, File.MInfo=File.MInfo, N.Sample=N.Sample, File.Permu=File.Permu
+	,data=data, Is.Dosage=FALSE, impute.method=impute.method)
+	
+	Close_BED_File(Is.Dosage=FALSE)
+	
+}
+
+Generate_Meta_Files_Work<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, File.MInfo, N.Sample, File.Permu=NULL, data=NULL
+, Is.Dosage=FALSE, impute.method="fixed"){
 
 	MetaSKAT_Is_IsLittleEndian()
 	
@@ -457,7 +477,9 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 
 	# open bim
 	BimInfo<-Open_BED_File(File.Bed, File.Bim, N.Sample,Is.Dosage=Is.Dosage)
-
+	#BimInfo1<<-BimInfo
+	#return(1)
+	
 	# open MSSD
 	File.MInfo = Open_Write_MSSD_File(File.MSSD, File.MInfo)
 
@@ -551,7 +573,7 @@ Generate_Meta_Files<-function(obj, File.Bed, File.Bim, File.SetID, File.MSSD, Fi
 		nSNP<-length(Allele1)
 		PASS1<-rep("PASS",nSNP)
 		
-		re1<-Meta_SKAT_SaveData(Z, obj, SetID=SetID, impute.method = "fixed")
+		re1<-Meta_SKAT_SaveData(Z, obj, SetID=SetID, impute.method = impute.method)
 		Write_To_MetaInfo(File.MInfo, SetID, i, SNPID, re1$Score, MAF, re1$missing_rate, Major.Allele, Minor.Allele, PASS1 ,byte_used, startpos.permu )
 		if(Is.Permu){
 				

@@ -29,6 +29,7 @@
 #define ERROR_BED_READ	16	// read in bed file read error
 #define ERORR_BED_FILESIZE 17
 #define ERORR_MAT_SEEK 18
+
 #endif //_ERROR_MESSAGES_H
 
 

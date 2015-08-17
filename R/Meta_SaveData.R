@@ -3,7 +3,7 @@
 #	Check the Z, and do imputation
 #
 #
-Meta_SKAT_MAIN_Check_Z<-function(Z, n, id_include, SetID, is_dosage, impute.method="fixed"){
+Meta_SKAT_MAIN_Check_Z<-function(Z, n, id_include, SetID, is_dosage=FALSE, impute.method="fixed"){
 
 
 	m = ncol(Z)
@@ -69,7 +69,7 @@ Meta_SKAT_SaveData = function(Z, obj.res, SetID, impute.method = "fixed"){
 	m<-dim(Z)[2]
 	re<-1
 
-	out.z<-Meta_SKAT_MAIN_Check_Z(Z, n, obj.res$id_include, SetID, impute.method)
+	out.z<-Meta_SKAT_MAIN_Check_Z(Z, n, obj.res$id_include, SetID, impute.method=impute.method)
 	
 	if(class(obj.res)== "SKAT_NULL_Model_EMMAX"){
 		out = Meta_SKAT_SaveData_Kinship(obj.res$res, out.z$Z.test, obj.res$P)

@@ -260,6 +260,25 @@ method="davies", r.corr=0, is.separate = FALSE, Group_Idx=NULL, impute.method="f
 		
 		} else if(impute.estimate.maf==2){
 			Z<-SKAT:::Impute(Z,impute.method=impute.method)
+		} else if(impute.estimate.maf==3){
+			if(is.null(Group_Idx)){
+				stop("ERROR: Group_Idx should not be NULL when impute.estimate.maf==3")
+			}
+			
+			ID.Groups = unique(Group_Idx)	
+			ID.all<-NULL
+			for(j in 1:length(ID.Groups)){
+		
+				id.cohort.a<-which(Group_Idx == ID.Groups[j])
+				for(k in 1:length(id.cohort.a)){
+					id.cohort<-id.cohort.a[k]
+					ID<-obj$ID[[id.cohort]]
+					ID.all<-c(ID.all, ID)
+				}
+				Z[ID.all,]<-SKAT:::Impute(Z[ID.all,],impute.method=impute.method)
+			}
+			
+
 		} else {
 			stop("ERROR: impute.estimate.mat is wrong! it should be either 1 or 2")
 		}

@@ -40,7 +40,8 @@ impute.method="fixed",impute.estimate.maf=1, missing_cutoff=0.15)
       \item{impute.estimate.maf}{ a numeric value indicating how to estimate MAFs for the imputation. If
           impute.estimate.maf=1 (default), MetaSKAT uses study-specific MAFs, in which each study MAFs will be used for the imputation. 
           If impute.estimate.maf=2, all samples in the Z matrix will be used to calculate MAFs for
-          the imputation. Previous versions (< ver 0.6) used impute.estimate.maf=2 as a default.}
+          the imputation. If impute.estimate.maf=3, MetaSKAT uses group-specific MAFs.
+          Previous versions (< ver 0.6) used impute.estimate.maf=2 as a default.}
       \item{missing_cutoff}{a cutoff of the missing rates of SNPs (default=0.15). If the first study has SNPs with missing rates higher than the cutoff, 
        these SNPs in the study will be excluded from the analysis. However, the same SNPs in other studies will not be excluded, if their missing rates are lower than the cutoff. The missing
       rates are calculated study by study.}

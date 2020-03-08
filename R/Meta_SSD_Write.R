@@ -32,14 +32,14 @@ Open_BED_File<-function(File.Bed, File.Bim, N.Sample, Is.Dosage){
 	File.Bim<-normalizePath(File.Bim ,mustWork =FALSE)
 
 	
-	SKAT:::Check_File_Exists(File.Bed)
-	SKAT:::Check_File_Exists(File.Bim)
+	Check_File_Exists(File.Bed)
+	Check_File_Exists(File.Bim)
 
 	
 	# read bim file
 	cat("Read Bim file\n")
 	BimInfo<-try(read.table(File.Bim, header=FALSE, stringsAsFactors=FALSE), silent=TRUE)
-	if(class(BimInfo)=="try-error"){
+	if(Is_TryError(BimInfo)){
 		stop("Error in Bim file!") 
 	}
 	nMarker<-dim(BimInfo)[1]
@@ -71,7 +71,7 @@ Open_Dosage_File<-function(File.Dosage,  N.Sample){
 	err_code<-0
 	File.Dosage<-normalizePath(File.Dosage ,mustWork =FALSE)
 	
-	SKAT:::Check_File_Exists(File.Dosage)
+	Check_File_Exists(File.Dosage)
 
 	
 	# read bim file
@@ -436,13 +436,13 @@ Generate_Meta_Files_Work<-function(obj, File.Bed, File.Bim, File.SetID, File.MSS
 	Magic_Byte<-1
 	# Read MAP file and SetID file
 	File.SetID<-normalizePath(File.SetID ,mustWork =FALSE)
-	SKAT:::Check_File_Exists(File.SetID)
+	Check_File_Exists(File.SetID)
 
 	##########################################
 	# Check obj
 	
 	
-	if(class(obj) == "SKAT_NULL_Model_ADJ"){
+	if(Check_Class(obj, "SKAT_NULL_Model_ADJ")){
 		obj = obj$re1
 		warning("MetaSKAT doesn't support the small sample adjustment!")
 	} 
@@ -458,7 +458,7 @@ Generate_Meta_Files_Work<-function(obj, File.Bed, File.Bim, File.SetID, File.MSS
 	# read setid
 	cat("Read SetID file\n")
 	SetInfo<-try(read.table(File.SetID, header=FALSE, stringsAsFactors=FALSE), silent=TRUE)
-	if(class(SetInfo)=="try-error"){
+	if(Is_TryError(SetInfo)){
 		stop("Error in SetID file!") 
 	}
 	colnames(SetInfo)<-c("SetID","SnpID")

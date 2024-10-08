@@ -1,8 +1,8 @@
 Package: MetaSKAT
 Type: Package
 Title: Meta Analysis for SNP-Set (Sequence) Kernel Association Test
-Version: 0.82
-Date: 2022-07-21
+Version: 0.90
+Date: 2024-10-08
 Authors@R: c(person("Seunggeun (Shawn)", "Lee", role = c("aut", "cre"),
                      email = "lee7801@snu.ac.kr"))
 Author: Seunggeun (Shawn) Lee [aut, cre]
@@ -13,6 +13,6 @@ SystemRequirements: Little Endian
 Depends: R (>= 2.13.0)
 Imports: SKAT (>= 2.0.1)
 NeedsCompilation: yes
-Packaged: 2022-07-21 07:06:00 UTC; LEE7801
+Packaged: 2024-10-08 13:08:42 UTC; lee7801
 Repository: CRAN
-Date/Publication: 2022-07-21 09:20:02 UTC
+Date/Publication: 2024-10-08 13:30:07 UTC

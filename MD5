@@ -1,4 +1,4 @@
-1f297931bb48210498e64e21fdd1bc2c *DESCRIPTION
+dd50b9bbaa671a0a52050e5b054ba899 *DESCRIPTION
 cf88cae3f66d4ab6c1153d8e082d5c52 *NAMESPACE
 8ff0fdf87e5e25403dec585e0207b165 *R/Function.R
 df4d8001e2515fdb3085ba3c08cd2194 *R/Meta_Null_Model.R
@@ -9,12 +9,12 @@ d5a9213e224c553f529ce15e6e8d3816 *R/Meta_SSD_Read.R
 8205cce7d477a91e8b65a7b3e5b5555c *R/Meta_SSD_Write.R
 b0b818f0f21ba0341ef66a03d241a5ec *R/Meta_SaveData.R
 68bf5259e8a50e64545ef58100f68f8e *R/SSD.R
-31d0520a9cace4206b1cae91860f31bc *build/vignette.rds
+ea8d4f2ab1e2b6dae43d9fcca020f2cf *build/vignette.rds
 ec5cd4ddeb99f7302b9ca6faae08a1d7 *data/Example.rda
 02fb126282cb0d596a9052bc21948326 *data/datalist
-07bf6b839fe8dc0b738db4c67a300274 *inst/doc/MetaSKAT.R
+a2f84c94432165e7024924944f80c8c0 *inst/doc/MetaSKAT.R
 0c9ec578ffa3dbd45ac504846ec7846e *inst/doc/MetaSKAT.Rnw
-4ee3c61129f55cb076a3353cd901f0c9 *inst/doc/MetaSKAT.pdf
+f01b1d42e15276891a3f8aada15c32a5 *inst/doc/MetaSKAT.pdf
 96f60beb3d084187f0bbb1d720b0d512 *man/Example.rd
 4818bfe962e72643e76ad96b10751f41 *man/Generate_Meta_Files.rd
 131dcf87c1ae43144296541bfc61c76b *man/MetaSKAT_MSSD_OneSet.rd
@@ -28,11 +28,11 @@ d6bd4cf8437d49e69818bd109f2fc3a7 *src/MatFile.h
 999b9be5a97589036fca42ed071ded7a *src/Meta.h
 f8172f4815df44330b100bcab77bdf30 *src/Permutation.cpp
 e19b2607294facbe631708497a6f9678 *src/Permutation.h
-142cc43c58786255c0a4f2160878320f *src/RFunc.cpp
+b8dde98c86d5fe0dac15e13cd8f64634 *src/RFunc.cpp
 02339beaf193ce505d7132b9c2be4c1b *src/RFunc.h
 2f06530fcbb5c768adf871b4a5a1c35b *src/Read_BED.cpp
 7c16c557f529cd94e47d67934a567e07 *src/Read_BED.h
-fd69b04ff5fbc2c34f35cfffebdad761 *src/Read_Dosage.cpp
+a2bec789d1adcc3b93c376da874da567 *src/Read_Dosage.cpp
 3b34c11fc2c4a5497a1b1988b86d145c *src/Read_Dosage.h
 e3a93b66a6a9c2066bc688cd6bfe6d30 *src/crc32.cpp
 4e13e687b819a0439a07f0366017af29 *src/error_messages.h
